@@ -1306,7 +1306,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                 </div>
 
                 <div className="admin-panel">
-                  {adminTab === 'activities' ? (
+                  {adminTab === 'activities' && (
                     <>
                       <div className="admin-list-heading"><strong>Atividades cadastradas</strong><input aria-label="Buscar atividades" placeholder="Buscar por título ou descrição" value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} /></div>
                       <div className="admin-list">
@@ -1340,7 +1340,8 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                         ))}
                       </div>
                     </>
-                  ) : (
+                  )}
+                  {adminTab === 'suggestions' && (
                     <>
                       <div className="admin-list-heading">
                         <strong>Sugestões dos alunos</strong>
