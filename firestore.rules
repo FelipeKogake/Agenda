@@ -90,9 +90,11 @@ service cloud.firestore {
       allow create: if isValidActivity(request.resource.data)
         && canCreateActivity(request.resource.data);
 
-      // turmaId não muda depois de criado (não dá pra "converter" turma <-> geral).
+      // Precisa poder gerenciar a turma/escopo ATUAL (antes da edição) e também
+      // ter permissão sobre o turmaId NOVO — assim dá pra converter turma <-> geral,
+      // mas sem burlar quem pode criar/gerenciar cada tipo.
       allow update: if canManageActivity(resource.data)
-        && request.resource.data.turmaId == resource.data.turmaId
+        && (request.resource.data.turmaId == null ? isAnyAdmin() : canManage(request.resource.data.turmaId))
         && isValidActivity(request.resource.data);
 
       allow delete: if canManageActivity(resource.data);

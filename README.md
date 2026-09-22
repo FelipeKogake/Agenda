@@ -50,7 +50,7 @@ O arquivo `.env.local` (baseado em `.env.example`) é opcional e serve só para 
 - `type`: `"tarefa"` | `"licao"` | `"trabalho"` | `"evento"`
 - `date`: data específica no formato `YYYY-MM-DD`
 - `time`: horário opcional no formato `HH:MM`, ou `null`
-- `turmaId`: string da turma, ou `null` para **evento geral** (aparece no calendário de todas as turmas). Não pode mudar depois de criado — um evento geral nunca vira específico de turma e vice-versa.
+- `turmaId`: string da turma, ou `null` para **evento geral** (aparece no calendário de todas as turmas). Pode ser alterado depois, editando a atividade e marcando/desmarcando "Evento geral" — assim dá pra converter entre turma específica e geral.
 - `createdByEmail`: e-mail de quem criou, guardado só na criação (não muda se outra pessoa editar depois). Mostrado publicamente no card da atividade. Atividades criadas antes dessa mudança não têm esse campo e simplesmente não mostram autor.
 - Qualquer representante (de qualquer turma) ou o super-admin pode criar um evento geral. Só quem criou ou o super-admin pode editar/excluir um evento geral depois — diferente das atividades de turma, que qualquer representante daquela turma específica pode gerenciar.
 

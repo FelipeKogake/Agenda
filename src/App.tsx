@@ -1146,8 +1146,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     setBusy(true)
     setSaveError('')
     try {
-      const turmaIdForSave = editing ? editing.turmaId : (isGlobalForm ? null : managedTurma)
-      const payload = { ...form, time: hasTime ? form.time : null, turmaId: turmaIdForSave }
+      const payload = { ...form, time: hasTime ? form.time : null, turmaId: isGlobalForm ? null : managedTurma }
       if (editing) {
         await updateDoc(doc(db, 'activities', editing.id), { ...payload, updatedAt: serverTimestamp() })
         setNotice('Atividade atualizada.')
@@ -1460,10 +1459,11 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                 <label className="wide">Título<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
                 <label>Tipo<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ActivityType })}>{ACTIVITY_TYPES.map((type) => <option value={type} key={type}>{ACTIVITY_TYPE_LABELS[type]}</option>)}</select></label>
                 <label>Data<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
-                {editing ? (
-                  editing.turmaId === null && <p className="config-hint wide">Este é um evento geral — vale para todas as turmas. Não é possível transformar em específico de uma turma depois.</p>
-                ) : (
-                  <label className="toggle wide"><input type="checkbox" checked={isGlobalForm} onChange={(event) => setIsGlobalForm(event.target.checked)} /><span /> Evento geral (aparece em todas as turmas)</label>
+                <label className="toggle wide"><input type="checkbox" checked={isGlobalForm} onChange={(event) => setIsGlobalForm(event.target.checked)} /><span /> Evento geral (aparece em todas as turmas)</label>
+                {isGlobalForm ? (
+                  <p className="config-hint wide">Vai aparecer no calendário de todas as turmas, não só {isRepresentante ? 'da sua' : `de "${managedTurma}"`}.</p>
+                ) : editing && editing.turmaId === null && (
+                  <p className="config-hint wide">Vai deixar de ser geral e passar a valer só para {isRepresentante ? 'a sua turma' : `"${managedTurma}"`}.</p>
                 )}
                 <label className="toggle wide"><input type="checkbox" checked={hasTime} onChange={(event) => { setHasTime(event.target.checked); if (!event.target.checked) setForm({ ...form, time: null }) }} /><span /> Tem horário definido</label>
                 {hasTime && <label>Horário<input required type="time" value={form.time ?? ''} onChange={(event) => setForm({ ...form, time: event.target.value })} /></label>}
