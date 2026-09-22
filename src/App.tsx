@@ -8,9 +8,13 @@ import {
   DoorOpen,
   Edit3,
   KeyRound,
+  ListChecks,
   LoaderCircle,
   LogOut,
+  Menu,
+  MessageSquarePlus,
   Plus,
+  Settings,
   Trash2,
   UserRound,
   X,
@@ -50,6 +54,20 @@ import {
   type ActivityType,
   type AdminProfile,
 } from './types'
+import {
+  NEON_COLORS,
+  NEON_COLOR_LABELS,
+  NEON_COLOR_SWATCHES,
+  THEME_LABELS,
+  THEME_PREVIEW,
+  THEMES,
+  readStoredNeon,
+  readStoredTheme,
+  storeNeon,
+  storeTheme,
+  type NeonColor,
+  type Theme,
+} from './theme'
 
 const TURMA_STORAGE_KEY = 'agenda:turma'
 
@@ -78,6 +96,29 @@ function App() {
   const [monthCursor, setMonthCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [adminOpen, setAdminOpen] = useState(window.location.hash === '#admin')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [configOpen, setConfigOpen] = useState(false)
+  const [theme, setThemeState] = useState<Theme>(readStoredTheme)
+  const [neon, setNeonState] = useState<NeonColor>(readStoredNeon)
+
+  function setTheme(value: Theme) {
+    setThemeState(value)
+    storeTheme(value)
+  }
+
+  function setNeon(value: NeonColor) {
+    setNeonState(value)
+    storeNeon(value)
+  }
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.documentElement.dataset.neon = neon
+  }, [theme, neon])
+
+  useEffect(() => {
+    document.title = turmaId ? `Agenda — ${turmaId}` : 'Agenda da turma'
+  }, [turmaId])
 
   function chooseTurma(value: string) {
     setTurmaId(value)
@@ -150,6 +191,16 @@ function App() {
           <span className="brand-mark"><Calendar size={21} strokeWidth={2.3} /></span>
           <span>Agenda da turma</span>
         </a>
+        <button
+          type="button"
+          className="menu-trigger"
+          aria-label="Abrir menu"
+          aria-haspopup="dialog"
+          title="Menu"
+          onClick={() => setMenuOpen(true)}
+        >
+          <Menu size={20} strokeWidth={2.3} aria-hidden="true" />
+        </button>
       </header>
 
       <main id="inicio" className="main-content">
@@ -226,7 +277,110 @@ function App() {
 
       {!turmaId && <TurmaPickerModal onChoose={chooseTurma} />}
 
+      {menuOpen && (
+        <SideMenu
+          onClose={() => setMenuOpen(false)}
+          onOpenConfig={() => { setConfigOpen(true); setMenuOpen(false) }}
+          onOpenAdmin={() => { openAdmin(); setMenuOpen(false) }}
+        />
+      )}
+
+      {configOpen && (
+        <ConfigDialog theme={theme} neon={neon} onSetTheme={setTheme} onSetNeon={setNeon} onClose={() => setConfigOpen(false)} />
+      )}
+
       {adminOpen && <AdminDialog publicTurmaId={turmaId} onClose={closeAdmin} />}
+    </div>
+  )
+}
+
+function SideMenu({ onClose, onOpenConfig, onOpenAdmin }: { onClose: () => void; onOpenConfig: () => void; onOpenAdmin: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <aside className="side-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+        <div className="dialog-header">
+          <h2 id="menu-title">Menu</h2>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        <nav className="side-menu-list">
+          <button type="button" onClick={onOpenConfig}><Settings size={18} /> Configurações</button>
+          <button type="button" onClick={onOpenAdmin}><KeyRound size={18} /> Sou representante</button>
+          <button type="button" disabled><MessageSquarePlus size={18} /> Comentar melhoria <span className="soon-badge">em breve</span></button>
+          <button type="button" disabled><ListChecks size={18} /> Minhas sugestões <span className="soon-badge">em breve</span></button>
+        </nav>
+      </aside>
+    </div>
+  )
+}
+
+function ConfigDialog({ theme, neon, onSetTheme, onSetNeon, onClose }: {
+  theme: Theme
+  neon: NeonColor
+  onSetTheme: (value: Theme) => void
+  onSetNeon: (value: NeonColor) => void
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="config-dialog" role="dialog" aria-modal="true" aria-labelledby="config-title">
+        <div className="dialog-header">
+          <h2 id="config-title">Configurações</h2>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        <div className="config-content">
+          <div className="config-section">
+            <h3>Tema</h3>
+            <div className="theme-options">
+              {THEMES.map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={`theme-swatch ${theme === value ? 'active' : ''}`}
+                  onClick={() => onSetTheme(value)}
+                >
+                  <span className="theme-dot" style={{ background: THEME_PREVIEW[value] }} />
+                  {THEME_LABELS[value]}
+                </button>
+              ))}
+            </div>
+            {theme === 'cyberpunk' && (
+              <div className="neon-options" aria-label="Cor de destaque neon">
+                {NEON_COLORS.map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={`neon-swatch ${neon === value ? 'active' : ''}`}
+                    style={{ background: NEON_COLOR_SWATCHES[value] }}
+                    onClick={() => onSetNeon(value)}
+                    aria-label={NEON_COLOR_LABELS[value]}
+                    title={NEON_COLOR_LABELS[value]}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="config-section muted">
+            <h3>Acessibilidade</h3>
+            <p>Em breve: painel de fonte, contraste e redução de animações.</p>
+          </div>
+          <div className="config-section muted">
+            <h3>Apoie o projeto</h3>
+            <p>Em breve: chave Pix para quem quiser pagar um café.</p>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
