@@ -55,6 +55,7 @@ import {
   type ActivityInput,
   type ActivityType,
   type AdminProfile,
+  type Feedback,
   type Suggestion,
   type SuggestionInput,
 } from './types'
@@ -116,6 +117,7 @@ function App() {
   const [configOpen, setConfigOpen] = useState(false)
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [mySuggestionsOpen, setMySuggestionsOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
   const [neon, setNeonState] = useState<NeonColor>(readStoredNeon)
   const [fontScale, setFontScaleState] = useState<FontScale>(readStoredFontScale)
@@ -338,12 +340,15 @@ function App() {
           onOpenConfig={() => { setConfigOpen(true); setMenuOpen(false) }}
           onOpenAdmin={() => { openAdmin(); setMenuOpen(false) }}
           onOpenMySuggestions={() => { setMySuggestionsOpen(true); setMenuOpen(false) }}
+          onOpenFeedback={() => { setFeedbackOpen(true); setMenuOpen(false) }}
         />
       )}
 
       {suggestOpen && turmaId && <SuggestDialog turmaId={turmaId} onClose={() => setSuggestOpen(false)} />}
 
       {mySuggestionsOpen && <MySuggestionsDialog onClose={() => setMySuggestionsOpen(false)} />}
+
+      {feedbackOpen && <FeedbackDialog turmaId={turmaId} onClose={() => setFeedbackOpen(false)} />}
 
       {configOpen && (
         <ConfigDialog
@@ -392,11 +397,12 @@ function VLibrasWidget() {
   )
 }
 
-function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions }: {
+function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onOpenFeedback }: {
   onClose: () => void
   onOpenConfig: () => void
   onOpenAdmin: () => void
   onOpenMySuggestions: () => void
+  onOpenFeedback: () => void
 }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
@@ -414,7 +420,7 @@ function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions }: {
         <nav className="side-menu-list">
           <button type="button" onClick={onOpenConfig}><Settings size={18} /> Configurações</button>
           <button type="button" onClick={onOpenAdmin}><KeyRound size={18} /> Sou representante</button>
-          <button type="button" disabled><MessageSquarePlus size={18} /> Comentar melhoria <span className="soon-badge">em breve</span></button>
+          <button type="button" onClick={onOpenFeedback}><MessageSquarePlus size={18} /> Comentar melhoria</button>
           <button type="button" onClick={onOpenMySuggestions}><ListChecks size={18} /> Minhas sugestões</button>
         </nav>
       </aside>
@@ -668,6 +674,65 @@ function MySuggestionsDialog({ onClose }: { onClose: () => void }) {
   )
 }
 
+function FeedbackDialog({ turmaId, onClose }: { turmaId: string | null; onClose: () => void }) {
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await addDoc(collection(db, 'feedback'), { message: message.trim(), turmaId: turmaId ?? null, createdAt: serverTimestamp() })
+      setSent(true)
+    } catch {
+      setError('Não foi possível enviar o comentário. Tente novamente.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="day-dialog" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+        <div className="dialog-header">
+          <h2 id="feedback-title">Comentar melhoria</h2>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        {sent ? (
+          <div className="state-card"><Check /><p>Obrigado! Seu comentário foi enviado.</p></div>
+        ) : (
+          <form className="activity-form standalone" onSubmit={submit}>
+            <div className="form-grid">
+              <label className="wide">
+                O que podemos melhorar no site?
+                <textarea
+                  required
+                  rows={5}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Sugestões, problemas que encontrou, ideias..."
+                  autoFocus
+                />
+              </label>
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <div className="form-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button compact" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : 'Enviar comentário'}</button></div>
+          </form>
+        )}
+      </section>
+    </div>
+  )
+}
+
 function DayDetail({ day, activities, onClose }: { day: Date; activities: Activity[]; onClose: () => void }) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -709,6 +774,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const [managedTurma, setManagedTurma] = useState<string>(publicTurmaId ?? CLASS_NAMES[0])
   const [managedActivities, setManagedActivities] = useState<Activity[]>([])
   const [managedSuggestions, setManagedSuggestions] = useState<Suggestion[]>([])
+  const [feedbackList, setFeedbackList] = useState<Feedback[]>([])
   const [adminSearch, setAdminSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
@@ -765,6 +831,15 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
       setManagedSuggestions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Suggestion))
     })
   }, [profile, managedTurma])
+
+  const isSuperAdmin = profile?.role === 'superadmin'
+
+  useEffect(() => {
+    if (!isSuperAdmin) return
+    return onSnapshot(collection(db, 'feedback'), (snapshot) => {
+      setFeedbackList(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Feedback))
+    })
+  }, [isSuperAdmin])
 
   const isRepresentante = profile?.role === 'representante'
   const turmaMismatch = isRepresentante && !!profile?.turmaId && !(CLASS_NAMES as readonly string[]).includes(profile.turmaId)
@@ -885,6 +960,15 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     }
   }
 
+  async function discardFeedback(item: Feedback) {
+    if (!window.confirm('Remover este comentário da lista?')) return
+    try {
+      await deleteDoc(doc(db, 'feedback', item.id))
+    } catch {
+      setNotice('Não foi possível remover o comentário.')
+    }
+  }
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -927,6 +1011,27 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
               </div>
             </div>
             {notice && <div className="notice"><Check size={17} /> {notice}</div>}
+
+            {isSuperAdmin && (
+              <>
+                <div className="admin-list-heading">
+                  <strong>Feedback do site</strong>
+                  {feedbackList.length > 0 && <span className="soon-badge pending">{feedbackList.length}</span>}
+                </div>
+                <div className="admin-list">
+                  {feedbackList.length === 0 ? <p className="admin-empty">Nenhum comentário recebido.</p> : feedbackList.map((item) => (
+                    <article key={item.id} className="admin-row">
+                      <div className="avatar"><MessageSquarePlus /></div>
+                      <div className="admin-row-main"><span className="feedback-message">{item.message}</span></div>
+                      <div className="admin-row-meta"><span>{item.turmaId ?? 'Geral'}</span><strong>{item.createdAt ? item.createdAt.toDate().toLocaleDateString('pt-BR') : '—'}</strong></div>
+                      <div className="row-actions">
+                        <button className="danger" onClick={() => discardFeedback(item)} aria-label="Remover comentário"><Trash2 /></button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div className="managed-turma">
               <span>Gerenciando a turma</span>

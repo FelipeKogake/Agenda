@@ -85,6 +85,21 @@ Sugestão de atividade enviada por um aluno (sem login), pendente de avaliação
 - Expira sozinha 30 dias após a criação (ver TTL na configuração do Firebase acima).
 - O aluno acompanha o status das próprias sugestões via um ID salvo no `localStorage` do navegador (tela "Minhas sugestões") — não há login nem outra forma de "dono" do documento.
 
+### `feedback/{feedbackId}`
+
+Comentário de melhoria sobre o site (não é por turma), enviado por qualquer visitante sem login. Só o super-admin lê, dentro da área administrativa.
+
+```json
+{
+  "message": "Seria legal ter uma visão semanal também",
+  "turmaId": "2° TECH D",
+  "createdAt": "2026-09-25T14:00:00Z"
+}
+```
+
+- `turmaId`: turma que a pessoa tinha selecionada ao enviar (contexto), ou `null`.
+- Representantes (não super-admin) não têm acesso a essa tela — é sobre o site inteiro, não sobre uma turma.
+
 ## Comandos
 
 ```bash

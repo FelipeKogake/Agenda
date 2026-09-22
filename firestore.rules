@@ -44,6 +44,12 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
+    function isValidFeedback(data) {
+      return data.message is string && data.message.size() > 0 && data.message.size() <= 2000
+        && (data.turmaId == null || (data.turmaId is string && data.turmaId.size() > 0))
+        && data.createdAt == request.time;
+    }
+
     // Documento de permissão de cada usuário autenticado.
     // Criado manualmente pelo Console do Firebase — nunca por escrita do app.
     match /admins/{uid} {
@@ -85,6 +91,13 @@ service cloud.firestore {
         && request.resource.data.status in ['aprovada', 'rejeitada'];
 
       allow delete: if canManage(resource.data.turmaId);
+    }
+
+    // Comentários de melhoria sobre o site (não são por turma). Só o super-admin lê.
+    match /feedback/{feedbackId} {
+      allow create: if isValidFeedback(request.resource.data);
+      allow get, list, delete: if isSuperAdmin();
+      allow update: if false;
     }
   }
 }

@@ -55,3 +55,10 @@ export type Suggestion = {
 }
 
 export type SuggestionInput = Omit<Suggestion, 'id' | 'status'>
+
+export type Feedback = {
+  id: string
+  message: string
+  turmaId: string | null
+  createdAt: { toDate: () => Date } | null
+}

@@ -238,6 +238,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .status-aprovada { background: #1fa971; color: white; }
 .status-rejeitada { background: #d1503a; color: white; }
 .soon-badge.pending { background: #f2c94c; color: #4a3b00; }
+.admin-row-main .feedback-message { color: var(--text); font-size: 12px; line-height: 1.4; }
 
 .side-menu { position: relative; width: min(320px, 85vw); height: 100%; overflow: auto; background: var(--paper); box-shadow: -10px 0 40px rgba(0,0,0,.25); animation: slide-in-right .2s ease; }
 @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
