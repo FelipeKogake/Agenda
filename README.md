@@ -17,7 +17,8 @@ Calendário mensal com tarefas, lições, trabalhos e eventos por turma. A leitu
    - Representante (gerencia 1 turma só): `{ "role": "representante", "turmaId": "2° TECH D" }`
    - Super-admin (gerencia todas as turmas): `{ "role": "superadmin" }`
    - O valor de `turmaId` precisa ser **idêntico, caractere a caractere**, a um dos valores de [`src/classNames.ts`](src/classNames.ts) (copie e cole de lá em vez de digitar, para não errar acento/maiúscula). Se não bater, o app avisa o representante que a turma não foi reconhecida.
-5. Publique as regras deste repositório com `firebase deploy --only firestore:rules` ou cole o conteúdo de [`firestore.rules`](firestore.rules) no Console do Firebase.
+5. Publique as regras deste repositório com `firebase deploy --only firestore:rules` ou cole o conteúdo de [`firestore.rules`](firestore.rules) no Console do Firebase. **Sempre que `firestore.rules` mudar** (como aconteceu ao adicionar a coleção `suggestions`), republique — regras antigas continuam valendo até você publicar de novo, então recursos novos parecem "quebrados" até esse passo.
+6. Configure o TTL da coleção `suggestions` para expirar sugestões com mais de 30 dias: **Firestore Database > TTL** no Console, crie uma política apontando para o campo `createdAt` da coleção `suggestions`. Sem isso, as sugestões continuam funcionando normalmente — só não são apagadas sozinhas depois de 30 dias.
 
 > Variáveis `VITE_*` são incorporadas ao JavaScript público. Por isso, nunca coloque senhas em `.env`, no Firestore ou nos secrets do GitHub. O site pede e-mail e senha, valida pelo Firebase Authentication e só libera o painel se o UID autenticado tiver um documento em `admins` com `role` igual a `representante` ou `superadmin`.
 
@@ -62,6 +63,27 @@ ou
 ```
 
 A lista de turmas é fixa em [`src/classNames.ts`](src/classNames.ts) — edite ali se as turmas mudarem.
+
+### `suggestions/{suggestionId}`
+
+Sugestão de atividade enviada por um aluno (sem login), pendente de avaliação do representante. Mesmo formato de `activities`, mais o campo `status`:
+
+```json
+{
+  "title": "Revisão para a prova de POO",
+  "description": "",
+  "type": "tarefa",
+  "date": "2026-09-25",
+  "time": null,
+  "turmaId": "2° TECH D",
+  "status": "pendente"
+}
+```
+
+- `status`: `"pendente"` | `"aprovada"` | `"rejeitada"` — só pode ser alterado pelo representante/superadmin daquela turma, nunca pelo autor da sugestão.
+- Ao aprovar, o app cria automaticamente um documento em `activities` com os mesmos dados e marca a sugestão como `"aprovada"`.
+- Expira sozinha 30 dias após a criação (ver TTL na configuração do Firebase acima).
+- O aluno acompanha o status das próprias sugestões via um ID salvo no `localStorage` do navegador (tela "Minhas sugestões") — não há login nem outra forma de "dono" do documento.
 
 ## Comandos
 

@@ -8,6 +8,7 @@ import {
   DoorOpen,
   Edit3,
   KeyRound,
+  Lightbulb,
   ListChecks,
   LoaderCircle,
   LogOut,
@@ -49,11 +50,15 @@ import {
   ACTIVITY_TYPES,
   ACTIVITY_TYPE_COLORS,
   ACTIVITY_TYPE_LABELS,
+  SUGGESTION_STATUS_LABELS,
   type Activity,
   type ActivityInput,
   type ActivityType,
   type AdminProfile,
+  type Suggestion,
+  type SuggestionInput,
 } from './types'
+import { addMySuggestionId, readMySuggestionIds, removeMySuggestionId } from './mySuggestions'
 import {
   NEON_COLORS,
   NEON_COLOR_LABELS,
@@ -109,6 +114,8 @@ function App() {
   const [adminOpen, setAdminOpen] = useState(window.location.hash === '#admin')
   const [menuOpen, setMenuOpen] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [mySuggestionsOpen, setMySuggestionsOpen] = useState(false)
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
   const [neon, setNeonState] = useState<NeonColor>(readStoredNeon)
   const [fontScale, setFontScaleState] = useState<FontScale>(readStoredFontScale)
@@ -256,6 +263,11 @@ function App() {
                 {CLASS_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
               </select>
             </label>
+            {turmaId && (
+              <button type="button" className="secondary-button" onClick={() => setSuggestOpen(true)}>
+                <Lightbulb size={16} /> Sugerir atividade
+              </button>
+            )}
           </div>
 
           <div className="month-nav">
@@ -325,8 +337,13 @@ function App() {
           onClose={() => setMenuOpen(false)}
           onOpenConfig={() => { setConfigOpen(true); setMenuOpen(false) }}
           onOpenAdmin={() => { openAdmin(); setMenuOpen(false) }}
+          onOpenMySuggestions={() => { setMySuggestionsOpen(true); setMenuOpen(false) }}
         />
       )}
+
+      {suggestOpen && turmaId && <SuggestDialog turmaId={turmaId} onClose={() => setSuggestOpen(false)} />}
+
+      {mySuggestionsOpen && <MySuggestionsDialog onClose={() => setMySuggestionsOpen(false)} />}
 
       {configOpen && (
         <ConfigDialog
@@ -375,7 +392,12 @@ function VLibrasWidget() {
   )
 }
 
-function SideMenu({ onClose, onOpenConfig, onOpenAdmin }: { onClose: () => void; onOpenConfig: () => void; onOpenAdmin: () => void }) {
+function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions }: {
+  onClose: () => void
+  onOpenConfig: () => void
+  onOpenAdmin: () => void
+  onOpenMySuggestions: () => void
+}) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKeyDown)
@@ -393,7 +415,7 @@ function SideMenu({ onClose, onOpenConfig, onOpenAdmin }: { onClose: () => void;
           <button type="button" onClick={onOpenConfig}><Settings size={18} /> Configurações</button>
           <button type="button" onClick={onOpenAdmin}><KeyRound size={18} /> Sou representante</button>
           <button type="button" disabled><MessageSquarePlus size={18} /> Comentar melhoria <span className="soon-badge">em breve</span></button>
-          <button type="button" disabled><ListChecks size={18} /> Minhas sugestões <span className="soon-badge">em breve</span></button>
+          <button type="button" onClick={onOpenMySuggestions}><ListChecks size={18} /> Minhas sugestões</button>
         </nav>
       </aside>
     </div>
@@ -531,6 +553,121 @@ function TurmaPickerModal({ onChoose }: { onChoose: (turmaId: string) => void })
   )
 }
 
+function SuggestDialog({ turmaId, onClose }: { turmaId: string; onClose: () => void }) {
+  const [form, setForm] = useState(emptyForm)
+  const [hasTime, setHasTime] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(false)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      const payload: SuggestionInput = { ...form, time: hasTime ? form.time : null, turmaId }
+      const reference = await addDoc(collection(db, 'suggestions'), { ...payload, status: 'pendente', createdAt: serverTimestamp() })
+      addMySuggestionId(reference.id)
+      setSent(true)
+    } catch {
+      setError('Não foi possível enviar a sugestão. Tente novamente.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="day-dialog" role="dialog" aria-modal="true" aria-labelledby="suggest-title">
+        <div className="dialog-header">
+          <div><p className="eyebrow dark">TURMA {turmaId}</p><h2 id="suggest-title">Sugerir atividade</h2></div>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        {sent ? (
+          <div className="state-card"><Check /><p>Sugestão enviada! O representante da turma vai avaliar. Acompanhe em "Minhas sugestões" no menu.</p></div>
+        ) : (
+          <form className="activity-form standalone" onSubmit={submit}>
+            <div className="form-grid">
+              <label className="wide">Título<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
+              <label>Tipo<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ActivityType })}>{ACTIVITY_TYPES.map((type) => <option value={type} key={type}>{ACTIVITY_TYPE_LABELS[type]}</option>)}</select></label>
+              <label>Data<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
+              <label className="toggle wide"><input type="checkbox" checked={hasTime} onChange={(event) => { setHasTime(event.target.checked); if (!event.target.checked) setForm({ ...form, time: null }) }} /><span /> Tem horário definido</label>
+              {hasTime && <label>Horário<input required type="time" value={form.time ?? ''} onChange={(event) => setForm({ ...form, time: event.target.value })} /></label>}
+              <label className="wide">Descrição<textarea rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Detalhes, capítulos, critérios de entrega…" /></label>
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <div className="form-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button compact" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : 'Enviar sugestão'}</button></div>
+          </form>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function MySuggestionsDialog({ onClose }: { onClose: () => void }) {
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  useEffect(() => {
+    let cancelled = false
+    const ids = readMySuggestionIds()
+    if (ids.length === 0) {
+      setSuggestions([])
+      return
+    }
+    Promise.all(ids.map((id) => getDoc(doc(db, 'suggestions', id)))).then((snapshots) => {
+      if (cancelled) return
+      const found: Suggestion[] = []
+      snapshots.forEach((snapshot, index) => {
+        if (snapshot.exists()) found.push({ id: snapshot.id, ...snapshot.data() } as Suggestion)
+        else removeMySuggestionId(ids[index])
+      })
+      setSuggestions(found)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="day-dialog" role="dialog" aria-modal="true" aria-labelledby="my-suggestions-title">
+        <div className="dialog-header">
+          <h2 id="my-suggestions-title">Minhas sugestões</h2>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        <div className="day-dialog-list">
+          {suggestions === null ? (
+            <div className="state-card"><LoaderCircle className="spin" /><p>Carregando…</p></div>
+          ) : suggestions.length === 0 ? (
+            <p className="admin-empty">Você ainda não enviou nenhuma sugestão neste navegador.</p>
+          ) : suggestions.map((item) => (
+            <article key={item.id} className="activity-detail" style={{ borderLeftColor: ACTIVITY_TYPE_COLORS[item.type] }}>
+              <div className="activity-detail-heading">
+                <span className="type-badge" style={{ background: ACTIVITY_TYPE_COLORS[item.type] }}>{ACTIVITY_TYPE_LABELS[item.type]}</span>
+                <span className={`status-badge status-${item.status}`}>{SUGGESTION_STATUS_LABELS[item.status]}</span>
+              </div>
+              <h3>{item.title}</h3>
+              {item.description && <p>{item.description}</p>}
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function DayDetail({ day, activities, onClose }: { day: Date; activities: Activity[]; onClose: () => void }) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -571,6 +708,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const [authChecked, setAuthChecked] = useState(false)
   const [managedTurma, setManagedTurma] = useState<string>(publicTurmaId ?? CLASS_NAMES[0])
   const [managedActivities, setManagedActivities] = useState<Activity[]>([])
+  const [managedSuggestions, setManagedSuggestions] = useState<Suggestion[]>([])
   const [adminSearch, setAdminSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
@@ -620,11 +758,25 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     })
   }, [profile, managedTurma])
 
+  useEffect(() => {
+    if (!profile || !managedTurma) return
+    const suggestionsQuery = query(collection(db, 'suggestions'), where('turmaId', '==', managedTurma))
+    return onSnapshot(suggestionsQuery, (snapshot) => {
+      setManagedSuggestions(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Suggestion))
+    })
+  }, [profile, managedTurma])
+
   const isRepresentante = profile?.role === 'representante'
   const turmaMismatch = isRepresentante && !!profile?.turmaId && !(CLASS_NAMES as readonly string[]).includes(profile.turmaId)
   const filteredActivities = managedActivities
     .filter((activity) => matchesSearch(activity, adminSearch))
     .sort((a, b) => a.date.localeCompare(b.date) || compareActivities(a, b))
+  const pendingSuggestions = managedSuggestions
+    .filter((item) => item.status === 'pendente')
+    .sort((a, b) => a.date.localeCompare(b.date))
+  const processedSuggestions = managedSuggestions
+    .filter((item) => item.status !== 'pendente')
+    .sort((a, b) => a.date.localeCompare(b.date))
 
   async function logIn(event: FormEvent) {
     event.preventDefault()
@@ -695,6 +847,44 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     }
   }
 
+  async function approveSuggestion(suggestion: Suggestion) {
+    try {
+      await addDoc(collection(db, 'activities'), {
+        title: suggestion.title,
+        description: suggestion.description,
+        type: suggestion.type,
+        date: suggestion.date,
+        time: suggestion.time,
+        turmaId: suggestion.turmaId,
+        createdBy: user?.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      await updateDoc(doc(db, 'suggestions', suggestion.id), { status: 'aprovada', updatedAt: serverTimestamp() })
+      setNotice('Sugestão aprovada e adicionada à agenda.')
+      window.setTimeout(() => setNotice(''), 2800)
+    } catch {
+      setNotice('Não foi possível aprovar a sugestão.')
+    }
+  }
+
+  async function rejectSuggestion(suggestion: Suggestion) {
+    try {
+      await updateDoc(doc(db, 'suggestions', suggestion.id), { status: 'rejeitada', updatedAt: serverTimestamp() })
+    } catch {
+      setNotice('Não foi possível rejeitar a sugestão.')
+    }
+  }
+
+  async function discardSuggestion(suggestion: Suggestion) {
+    if (!window.confirm(`Remover a sugestão "${suggestion.title}" da lista?`)) return
+    try {
+      await deleteDoc(doc(db, 'suggestions', suggestion.id))
+    } catch {
+      setNotice('Não foi possível remover a sugestão.')
+    }
+  }
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -748,6 +938,41 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                 </select>
               )}
             </div>
+
+            <div className="admin-list-heading">
+              <strong>Sugestões dos alunos</strong>
+              {pendingSuggestions.length > 0 && <span className="soon-badge pending">{pendingSuggestions.length} pendente{pendingSuggestions.length === 1 ? '' : 's'}</span>}
+            </div>
+            <div className="admin-list">
+              {pendingSuggestions.length === 0 ? <p className="admin-empty">Nenhuma sugestão pendente.</p> : pendingSuggestions.map((suggestion) => (
+                <article key={suggestion.id} className="admin-row">
+                  <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[suggestion.type] }}><Lightbulb /></div>
+                  <div className="admin-row-main"><strong>{suggestion.title}</strong><span>{ACTIVITY_TYPE_LABELS[suggestion.type]} · {parseDateLabel(suggestion.date)}{suggestion.time ? ` · ${suggestion.time}` : ''}</span></div>
+                  <div className="admin-row-meta"><span>{suggestion.description}</span></div>
+                  <div className="row-actions">
+                    <button onClick={() => approveSuggestion(suggestion)} aria-label={`Aprovar ${suggestion.title}`}><Check /></button>
+                    <button className="danger" onClick={() => rejectSuggestion(suggestion)} aria-label={`Rejeitar ${suggestion.title}`}><X /></button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {processedSuggestions.length > 0 && (
+              <>
+                <div className="admin-list-heading"><strong>Sugestões avaliadas</strong></div>
+                <div className="admin-list">
+                  {processedSuggestions.map((suggestion) => (
+                    <article key={suggestion.id} className="admin-row">
+                      <div className="avatar"><Lightbulb /></div>
+                      <div className="admin-row-main"><strong>{suggestion.title}</strong><span className={`status-badge status-${suggestion.status}`}>{SUGGESTION_STATUS_LABELS[suggestion.status]}</span></div>
+                      <div className="admin-row-meta"><span>{parseDateLabel(suggestion.date)}</span></div>
+                      <div className="row-actions">
+                        <button className="danger" onClick={() => discardSuggestion(suggestion)} aria-label={`Remover ${suggestion.title}`}><Trash2 /></button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div className="admin-list-heading"><strong>Atividades cadastradas</strong><input aria-label="Buscar atividades" placeholder="Buscar por título ou descrição" value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} /></div>
             <div className="admin-list">

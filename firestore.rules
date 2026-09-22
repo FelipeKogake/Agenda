@@ -25,13 +25,23 @@ service cloud.firestore {
       return isSuperAdmin() || isRepresentanteOf(turmaId);
     }
 
-    function isValidActivity(data) {
+    function hasActivityShape(data) {
       return data.title is string && data.title.size() > 0 && data.title.size() <= 120
         && data.description is string && data.description.size() <= 2000
         && data.type in ['tarefa', 'licao', 'trabalho', 'evento']
         && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && (data.time == null || (data.time is string && data.time.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
         && data.turmaId is string && data.turmaId.size() > 0;
+    }
+
+    function isValidActivity(data) {
+      return hasActivityShape(data);
+    }
+
+    function isValidSuggestion(data) {
+      return hasActivityShape(data)
+        && data.status == 'pendente'
+        && data.createdAt == request.time;
     }
 
     // Documento de permissão de cada usuário autenticado.
@@ -51,6 +61,28 @@ service cloud.firestore {
       allow update: if canManage(resource.data.turmaId)
         && canManage(request.resource.data.turmaId)
         && isValidActivity(request.resource.data);
+
+      allow delete: if canManage(resource.data.turmaId);
+    }
+
+    // Sugestões de atividades enviadas por alunos (sem login). Expira sozinha em
+    // 30 dias via política de TTL configurada no Console sobre o campo createdAt.
+    match /suggestions/{suggestionId} {
+      // Leitura de UM documento pelo ID: usada pelo aluno para acompanhar a própria
+      // sugestão (o ID guardado no localStorage funciona como um token de acesso).
+      allow get: if true;
+
+      // Listagem/consulta (ex.: "todas as sugestões da minha turma") só para quem
+      // gerencia aquela turma — evita expor as sugestões de todo mundo publicamente.
+      allow list: if canManage(resource.data.turmaId);
+
+      allow create: if isValidSuggestion(request.resource.data);
+
+      // Representante/superadmin só pode mudar o status (aprovar/rejeitar), nunca
+      // reescrever o conteúdo da sugestão.
+      allow update: if canManage(resource.data.turmaId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.status in ['aprovada', 'rejeitada'];
 
       allow delete: if canManage(resource.data.turmaId);
     }

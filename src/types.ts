@@ -33,3 +33,25 @@ export type AdminProfile = {
   role: AdminRole
   turmaId?: string
 }
+
+export const SUGGESTION_STATUSES = ['pendente', 'aprovada', 'rejeitada'] as const
+export type SuggestionStatus = (typeof SUGGESTION_STATUSES)[number]
+
+export const SUGGESTION_STATUS_LABELS: Record<SuggestionStatus, string> = {
+  pendente: 'Pendente',
+  aprovada: 'Aprovada',
+  rejeitada: 'Rejeitada',
+}
+
+export type Suggestion = {
+  id: string
+  title: string
+  description: string
+  type: ActivityType
+  date: string
+  time: string | null
+  turmaId: string
+  status: SuggestionStatus
+}
+
+export type SuggestionInput = Omit<Suggestion, 'id' | 'status'>
