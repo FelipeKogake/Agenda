@@ -68,6 +68,17 @@ import {
   type NeonColor,
   type Theme,
 } from './theme'
+import {
+  FONT_SCALES,
+  FONT_SCALE_LABELS,
+  readStoredFontScale,
+  readStoredHighContrast,
+  readStoredReduceMotion,
+  storeFontScale,
+  storeHighContrast,
+  storeReduceMotion,
+  type FontScale,
+} from './accessibility'
 
 const TURMA_STORAGE_KEY = 'agenda:turma'
 
@@ -100,6 +111,9 @@ function App() {
   const [configOpen, setConfigOpen] = useState(false)
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
   const [neon, setNeonState] = useState<NeonColor>(readStoredNeon)
+  const [fontScale, setFontScaleState] = useState<FontScale>(readStoredFontScale)
+  const [highContrast, setHighContrastState] = useState(readStoredHighContrast)
+  const [reduceMotion, setReduceMotionState] = useState(readStoredReduceMotion)
 
   function setTheme(value: Theme) {
     setThemeState(value)
@@ -111,10 +125,39 @@ function App() {
     storeNeon(value)
   }
 
+  function setFontScale(value: FontScale) {
+    setFontScaleState(value)
+    storeFontScale(value)
+  }
+
+  function setHighContrast(value: boolean) {
+    setHighContrastState(value)
+    storeHighContrast(value)
+  }
+
+  function setReduceMotion(value: boolean) {
+    setReduceMotionState(value)
+    storeReduceMotion(value)
+  }
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.documentElement.dataset.neon = neon
   }, [theme, neon])
+
+  useEffect(() => {
+    document.documentElement.dataset.fontScale = fontScale
+  }, [fontScale])
+
+  useEffect(() => {
+    if (highContrast) document.documentElement.dataset.contrast = 'alto'
+    else delete document.documentElement.dataset.contrast
+  }, [highContrast])
+
+  useEffect(() => {
+    if (reduceMotion) document.documentElement.dataset.motion = 'reduzido'
+    else delete document.documentElement.dataset.motion
+  }, [reduceMotion])
 
   useEffect(() => {
     document.title = turmaId ? `Agenda — ${turmaId}` : 'Agenda da turma'
@@ -286,10 +329,48 @@ function App() {
       )}
 
       {configOpen && (
-        <ConfigDialog theme={theme} neon={neon} onSetTheme={setTheme} onSetNeon={setNeon} onClose={() => setConfigOpen(false)} />
+        <ConfigDialog
+          theme={theme}
+          neon={neon}
+          onSetTheme={setTheme}
+          onSetNeon={setNeon}
+          fontScale={fontScale}
+          onSetFontScale={setFontScale}
+          highContrast={highContrast}
+          onSetHighContrast={setHighContrast}
+          reduceMotion={reduceMotion}
+          onSetReduceMotion={setReduceMotion}
+          onClose={() => setConfigOpen(false)}
+        />
       )}
 
       {adminOpen && <AdminDialog publicTurmaId={turmaId} onClose={closeAdmin} />}
+
+      <VLibrasWidget />
+    </div>
+  )
+}
+
+function VLibrasWidget() {
+  useEffect(() => {
+    if (document.getElementById('vlibras-script')) return
+    const script = document.createElement('script')
+    script.id = 'vlibras-script'
+    script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js'
+    script.onload = () => {
+      const vlibras = (window as unknown as { VLibras?: { Widget: new (url: string) => unknown } }).VLibras
+      if (vlibras) new vlibras.Widget('https://vlibras.gov.br/app')
+    }
+    document.body.appendChild(script)
+  }, [])
+
+  // Marcação exigida pelo widget oficial do governo (atributos não-padrão, por isso o `as Record<string, string>`).
+  return (
+    <div {...({ vw: '', className: 'enabled' } as Record<string, string>)}>
+      <div {...({ 'vw-access-button': '', className: 'active' } as Record<string, string>)} />
+      <div {...({ 'vw-plugin-wrapper': '' } as Record<string, string>)}>
+        <div className="vw-plugin-top-wrapper" />
+      </div>
     </div>
   )
 }
@@ -319,11 +400,29 @@ function SideMenu({ onClose, onOpenConfig, onOpenAdmin }: { onClose: () => void;
   )
 }
 
-function ConfigDialog({ theme, neon, onSetTheme, onSetNeon, onClose }: {
+function ConfigDialog({
+  theme,
+  neon,
+  onSetTheme,
+  onSetNeon,
+  fontScale,
+  onSetFontScale,
+  highContrast,
+  onSetHighContrast,
+  reduceMotion,
+  onSetReduceMotion,
+  onClose,
+}: {
   theme: Theme
   neon: NeonColor
   onSetTheme: (value: Theme) => void
   onSetNeon: (value: NeonColor) => void
+  fontScale: FontScale
+  onSetFontScale: (value: FontScale) => void
+  highContrast: boolean
+  onSetHighContrast: (value: boolean) => void
+  reduceMotion: boolean
+  onSetReduceMotion: (value: boolean) => void
   onClose: () => void
 }) {
   useEffect(() => {
@@ -371,9 +470,30 @@ function ConfigDialog({ theme, neon, onSetTheme, onSetNeon, onClose }: {
               </div>
             )}
           </div>
-          <div className="config-section muted">
+          <div className="config-section">
             <h3>Acessibilidade</h3>
-            <p>Em breve: painel de fonte, contraste e redução de animações.</p>
+            <p className="config-hint">Tamanho da fonte</p>
+            <div className="theme-options">
+              {FONT_SCALES.map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={`theme-swatch ${fontScale === value ? 'active' : ''}`}
+                  onClick={() => onSetFontScale(value)}
+                >
+                  {FONT_SCALE_LABELS[value]}
+                </button>
+              ))}
+            </div>
+            <label className="a11y-toggle">
+              <span>Alto contraste</span>
+              <span className="toggle"><input type="checkbox" checked={highContrast} onChange={(event) => onSetHighContrast(event.target.checked)} /><span /></span>
+            </label>
+            <label className="a11y-toggle">
+              <span>Reduzir animações</span>
+              <span className="toggle"><input type="checkbox" checked={reduceMotion} onChange={(event) => onSetReduceMotion(event.target.checked)} /><span /></span>
+            </label>
+            <p className="config-hint">VLibras (tradutor de Libras) já está disponível no botão flutuante no canto da tela.</p>
           </div>
           <div className="config-section muted">
             <h3>Apoie o projeto</h3>

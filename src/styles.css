@@ -54,6 +54,29 @@
 :root[data-theme="cyberpunk"][data-neon="azul"] { --neon: #25e0ff; }
 :root[data-theme="cyberpunk"][data-neon="rosa"] { --neon: #ff2ec4; }
 
+html[data-font-scale="grande"] { font-size: 112.5%; }
+html[data-font-scale="maior"] { font-size: 125%; }
+
+:root[data-theme="padrao"][data-contrast="alto"] {
+  --bg: #ffffff; --paper: #ffffff; --surface-alt: #e8e8e8;
+  --text: #000000; --ink: #000000; --ink-soft: #1a1a1a; --line: #000000;
+  --accent: #0000cc; --accent-hover: #0000aa; --accent-contrast: #ffffff; --mint: #cce0ff;
+}
+:root[data-theme="escuro"][data-contrast="alto"] {
+  --bg: #000000; --paper: #000000; --surface-alt: #141414;
+  --text: #ffffff; --ink: #ffffff; --ink-soft: #dddddd; --line: #ffffff;
+  --accent: #66aaff; --accent-hover: #88bbff; --accent-contrast: #000000; --mint: #223355;
+}
+:root[data-theme="cyberpunk"][data-contrast="alto"] {
+  --bg: #000000; --paper: #000000; --surface-alt: #141414;
+  --text: #ffffff; --ink: #ffffff; --ink-soft: #dddddd; --line: #ffffff;
+  --accent-contrast: #000000; --mint: #222222;
+}
+
+[data-motion="reduzido"] *, [data-motion="reduzido"] *::before, [data-motion="reduzido"] *::after {
+  animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important;
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--bg); color: var(--text); transition: background-color .2s ease, color .2s ease; }
@@ -228,6 +251,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .neon-options { display: flex; gap: 10px; margin-top: 14px; }
 .neon-swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
 .neon-swatch.active { border-color: var(--text); box-shadow: 0 0 0 2px var(--paper), 0 0 10px 2px currentColor; }
+
+.config-hint { margin: 14px 0 10px; color: var(--ink-soft); font-size: 11px; line-height: 1.5; }
+.a11y-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 12px; font-weight: 700; color: var(--text); cursor: pointer; }
 
 @media (max-width: 900px) {
   .calendar-day { min-height: 76px; }
