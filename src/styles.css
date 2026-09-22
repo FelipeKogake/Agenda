@@ -198,8 +198,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sidebar-block { display: grid; gap: 6px; font-size: 11px; color: var(--ink-soft); }
 .sidebar-block strong { color: var(--ink); font-size: 12px; }
 .sidebar-block .secondary-button { justify-self: start; margin-top: 4px; }
-.feedback-block { gap: 10px; }
-.feedback-block .admin-list-heading { margin-bottom: 0; }
+
+.announcement-editor { display: grid; gap: 10px; margin-bottom: 20px; }
+.announcement-editor textarea { width: 100%; border: 1px solid var(--line); background: var(--paper); padding: 12px 13px; outline: none; color: var(--text); border-radius: 6px; resize: vertical; }
+.announcement-editor textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--mint); }
+.announcement-editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.announcement-body { padding: 24px 30px 30px; }
+.announcement-body p { white-space: pre-wrap; color: var(--text); font-size: 14px; line-height: 1.6; margin: 0 0 22px; }
 
 .managed-turma select { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--text); font-size: 12px; }
 
@@ -260,8 +266,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .admin-row.compact .avatar svg { width: 14px; }
 .admin-row.compact .admin-row-main strong { font-size: 12px; }
 .admin-row.compact .admin-row-main span, .admin-row.compact .admin-row-meta span { font-size: 9px; }
-.admin-sidebar .admin-row.compact { grid-template-columns: 28px minmax(0, 1fr) auto; }
-.admin-sidebar .admin-row-meta { display: none; }
 
 .notif-dot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 2px var(--accent); }
 .notif-count { margin-left: auto; padding: 2px 7px; border-radius: 10px; background: #e5484d; color: white; font-size: 10px; font-weight: 800; }

@@ -100,6 +100,17 @@ Comentário de melhoria sobre o site (não é por turma), enviado por qualquer v
 - `turmaId`: turma que a pessoa tinha selecionada ao enviar (contexto), ou `null`.
 - Representantes (não super-admin) não têm acesso a essa tela — é sobre o site inteiro, não sobre uma turma.
 
+### `announcement/latest`
+
+Documento único (ID fixo `latest`) com o aviso atual mostrado para todo mundo — um modal "O que mudou" que aparece uma vez por pessoa (controlado por `localStorage`) sempre que o super-admin publica uma mensagem nova. Leitura pública; só o super-admin publica, edita ou remove, pela aba **Site** da área administrativa.
+
+```json
+{
+  "message": "Agora dá pra sugerir atividades! Toca no ícone de lâmpada no topo da agenda.",
+  "updatedAt": "2026-09-25T14:00:00Z"
+}
+```
+
 ## Publicar no GitHub Pages
 
 1. Em **Settings > Pages**, selecione **GitHub Actions** como fonte de publicação.

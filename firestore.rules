@@ -50,6 +50,11 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
+    function isValidAnnouncement(data) {
+      return data.message is string && data.message.size() > 0 && data.message.size() <= 500
+        && data.updatedAt == request.time;
+    }
+
     // Documento de permissão de cada usuário autenticado.
     // Criado manualmente pelo Console do Firebase — nunca por escrita do app.
     match /admins/{uid} {
@@ -98,6 +103,15 @@ service cloud.firestore {
       allow create: if isValidFeedback(request.resource.data);
       allow get, list, delete: if isSuperAdmin();
       allow update: if false;
+    }
+
+    // Aviso único mostrado para todo mundo (documento fixo "latest"). Só o
+    // super-admin publica/edita/remove; a leitura é pública, sem login.
+    match /announcement/{announcementId} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if isSuperAdmin() && isValidAnnouncement(request.resource.data);
+      allow delete: if isSuperAdmin();
     }
   }
 }

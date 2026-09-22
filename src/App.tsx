@@ -15,6 +15,7 @@ import {
   LoaderCircle,
   LogOut,
   MapPin,
+  Megaphone,
   Menu,
   MessageSquarePlus,
   Plus,
@@ -34,6 +35,7 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore'
@@ -58,12 +60,14 @@ import {
   type ActivityInput,
   type ActivityType,
   type AdminProfile,
+  type Announcement,
   type Feedback,
   type Suggestion,
   type SuggestionInput,
 } from './types'
 import { addMySuggestionId, readMySuggestionIds, removeMySuggestionId } from './mySuggestions'
 import { markNotificationsSeenNow, readLastSeen } from './notifications'
+import { markAnnouncementSeen, readAnnouncementSeenAt } from './announcementSeen'
 import {
   NEON_COLORS,
   NEON_COLOR_LABELS,
@@ -133,6 +137,8 @@ function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(0)
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null)
+  const [announcementSeenAt, setAnnouncementSeenAt] = useState(readAnnouncementSeenAt)
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
   const [neon, setNeonState] = useState<NeonColor>(readStoredNeon)
   const [fontScale, setFontScaleState] = useState<FontScale>(readStoredFontScale)
@@ -190,6 +196,15 @@ function App() {
   useEffect(() => {
     setNotificationsSeenAt(turmaId ? readLastSeen(turmaId) : 0)
   }, [turmaId])
+
+  useEffect(() => {
+    return onSnapshot(doc(db, 'announcement', 'latest'), (snapshot) => {
+      setAnnouncement(snapshot.exists() ? (snapshot.data() as Announcement) : null)
+    }, () => setAnnouncement(null))
+  }, [])
+
+  const announcementUpdatedMs = announcement?.updatedAt?.toDate().getTime() ?? 0
+  const showAnnouncement = Boolean(turmaId) && announcementUpdatedMs > 0 && announcementUpdatedMs > announcementSeenAt
 
   function chooseTurma(value: string) {
     setTurmaId(value)
@@ -386,6 +401,16 @@ function App() {
       {feedbackOpen && <FeedbackDialog turmaId={turmaId} onClose={() => setFeedbackOpen(false)} />}
 
       {notificationsOpen && <NotificationsDialog activities={recentActivities} onClose={() => setNotificationsOpen(false)} />}
+
+      {showAnnouncement && announcement && (
+        <AnnouncementModal
+          message={announcement.message}
+          onClose={() => {
+            markAnnouncementSeen(announcementUpdatedMs)
+            setAnnouncementSeenAt(announcementUpdatedMs)
+          }}
+        />
+      )}
 
       {configOpen && (
         <ConfigDialog
@@ -780,6 +805,28 @@ function FeedbackDialog({ turmaId, onClose }: { turmaId: string | null; onClose:
   )
 }
 
+function AnnouncementModal({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="day-dialog" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
+        <div className="dialog-header">
+          <div><p className="eyebrow dark">NOVIDADE</p><h2 id="announcement-title">O que mudou</h2></div>
+        </div>
+        <div className="announcement-body">
+          <p>{message}</p>
+          <button className="primary-button" onClick={onClose}>Entendi</button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function NotificationsDialog({ activities, onClose }: { activities: Activity[]; onClose: () => void }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
@@ -859,8 +906,10 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const [managedActivities, setManagedActivities] = useState<Activity[]>([])
   const [managedSuggestions, setManagedSuggestions] = useState<Suggestion[]>([])
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([])
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null)
+  const [announcementDraft, setAnnouncementDraft] = useState('')
   const [adminSearch, setAdminSearch] = useState('')
-  const [adminTab, setAdminTab] = useState<'activities' | 'suggestions'>('activities')
+  const [adminTab, setAdminTab] = useState<'activities' | 'suggestions' | 'site'>('activities')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -923,6 +972,15 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     if (!isSuperAdmin) return
     return onSnapshot(collection(db, 'feedback'), (snapshot) => {
       setFeedbackList(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Feedback))
+    })
+  }, [isSuperAdmin])
+
+  useEffect(() => {
+    if (!isSuperAdmin) return
+    return onSnapshot(doc(db, 'announcement', 'latest'), (snapshot) => {
+      const data = snapshot.exists() ? (snapshot.data() as Announcement) : null
+      setAnnouncement(data)
+      setAnnouncementDraft(data?.message ?? '')
     })
   }, [isSuperAdmin])
 
@@ -1054,6 +1112,33 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     }
   }
 
+  async function publishAnnouncement() {
+    const message = announcementDraft.trim()
+    if (!message) return
+    setBusy(true)
+    try {
+      await setDoc(doc(db, 'announcement', 'latest'), { message, updatedAt: serverTimestamp() })
+      setNotice('Aviso publicado para todos.')
+      window.setTimeout(() => setNotice(''), 2800)
+    } catch {
+      setNotice('Não foi possível publicar o aviso.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function removeAnnouncement() {
+    if (!window.confirm('Remover o aviso atual?')) return
+    try {
+      await deleteDoc(doc(db, 'announcement', 'latest'))
+      setAnnouncementDraft('')
+      setNotice('Aviso removido.')
+      window.setTimeout(() => setNotice(''), 2800)
+    } catch {
+      setNotice('Não foi possível remover o aviso.')
+    }
+  }
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -1096,6 +1181,12 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                     Sugestões
                     {pendingSuggestions.length > 0 && <span className="notif-count">{pendingSuggestions.length}</span>}
                   </button>
+                  {isSuperAdmin && (
+                    <button type="button" className={adminTab === 'site' ? 'active' : ''} onClick={() => setAdminTab('site')}>
+                      Site
+                      {feedbackList.length > 0 && <span className="notif-count">{feedbackList.length}</span>}
+                    </button>
+                  )}
                 </div>
 
                 <div className="admin-panel">
@@ -1154,6 +1245,48 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                       )}
                     </>
                   )}
+                  {adminTab === 'site' && (
+                    <>
+                      <div className="admin-list-heading"><strong>Aviso para todos</strong></div>
+                      <div className="announcement-editor">
+                        <textarea
+                          rows={4}
+                          maxLength={500}
+                          value={announcementDraft}
+                          onChange={(event) => setAnnouncementDraft(event.target.value)}
+                          placeholder="Ex.: Agora dá pra sugerir atividades! Toca no ícone de lâmpada no topo da agenda."
+                        />
+                        <div className="announcement-editor-actions">
+                          <span className="config-hint">
+                            {announcement?.updatedAt ? `Publicado em ${announcement.updatedAt.toDate().toLocaleString('pt-BR')}` : 'Nenhum aviso publicado no momento.'}
+                          </span>
+                          <div className="toolbar-actions">
+                            {announcement && <button type="button" className="secondary-button" onClick={removeAnnouncement}>Remover aviso</button>}
+                            <button type="button" className="primary-button compact" onClick={publishAnnouncement} disabled={busy || !announcementDraft.trim()}>
+                              <Megaphone size={16} /> Publicar aviso
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="admin-list-heading">
+                        <strong>Feedback do site</strong>
+                        {feedbackList.length > 0 && <span className="soon-badge pending">{feedbackList.length}</span>}
+                      </div>
+                      <div className="admin-list">
+                        {feedbackList.length === 0 ? <p className="admin-empty">Nenhum comentário recebido.</p> : feedbackList.map((item) => (
+                          <article key={item.id} className="admin-row compact">
+                            <div className="avatar"><MessageSquarePlus /></div>
+                            <div className="admin-row-main"><span className="feedback-message">{item.message}</span></div>
+                            <div className="admin-row-meta"><span>{item.turmaId ?? 'Geral'}</span><strong>{item.createdAt ? item.createdAt.toDate().toLocaleDateString('pt-BR') : '—'}</strong></div>
+                            <div className="row-actions">
+                              <button className="danger" onClick={() => discardFeedback(item)} aria-label="Remover comentário"><Trash2 /></button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1180,27 +1313,6 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                 )}
 
                 {notice && <div className="notice"><Check size={17} /> {notice}</div>}
-
-                {isSuperAdmin && (
-                  <div className="sidebar-block feedback-block">
-                    <div className="admin-list-heading">
-                      <strong>Feedback do site</strong>
-                      {feedbackList.length > 0 && <span className="soon-badge pending">{feedbackList.length}</span>}
-                    </div>
-                    <div className="admin-list">
-                      {feedbackList.length === 0 ? <p className="admin-empty">Nenhum comentário recebido.</p> : feedbackList.map((item) => (
-                        <article key={item.id} className="admin-row compact">
-                          <div className="avatar"><MessageSquarePlus /></div>
-                          <div className="admin-row-main"><span className="feedback-message">{item.message}</span></div>
-                          <div className="admin-row-meta"><span>{item.turmaId ?? 'Geral'}</span><strong>{item.createdAt ? item.createdAt.toDate().toLocaleDateString('pt-BR') : '—'}</strong></div>
-                          <div className="row-actions">
-                            <button className="danger" onClick={() => discardFeedback(item)} aria-label="Remover comentário"><Trash2 /></button>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </aside>
             </div>
           </div>
