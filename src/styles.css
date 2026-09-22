@@ -163,6 +163,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .turma-options button:hover { background: var(--surface-alt); border-color: var(--accent); }
 
 .admin-dialog, .config-dialog { position: relative; width: min(950px, 100%); max-height: min(820px, calc(100vh - 40px)); overflow: auto; background: var(--paper); box-shadow: var(--shadow); border-radius: 10px; }
+.admin-dialog { display: flex; flex-direction: column; }
+.admin-dialog .dialog-header { flex-shrink: 0; }
 .config-dialog { width: min(600px, 100%); }
 .login-form { width: min(400px, calc(100% - 40px)); margin: 60px auto 80px; text-align: center; }
 .login-form h3 { margin: 0; font-size: 22px; letter-spacing: -.03em; color: var(--ink); }
@@ -185,16 +187,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .unauthorized p { color: var(--ink-soft); }
 .unauthorized code { padding: 2px 5px; background: var(--surface-alt); border-radius: 3px; }
 
-.admin-content, .config-content { padding: 26px 30px 38px; }
-.admin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
-.admin-toolbar > div:first-child { display: grid; gap: 2px; font-size: 11px; color: var(--ink-soft); }
-.admin-toolbar strong { color: var(--ink); font-size: 12px; }
-.toolbar-actions { display: flex; gap: 8px; }
-.notice { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; padding: 11px 14px; color: #086e74; background: #dff7f5; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.config-content { padding: 26px 30px 38px; }
+.admin-content { flex: 1; min-height: 0; display: flex; }
+.notice { display: flex; align-items: center; gap: 8px; padding: 11px 14px; color: #086e74; background: #dff7f5; border-radius: 6px; font-size: 12px; font-weight: 700; }
 
-.managed-turma { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 12px 14px; background: var(--surface-alt); border: 1px solid var(--line); border-radius: 8px; font-size: 12px; color: var(--ink-soft); }
-.managed-turma strong { color: var(--ink); }
+.admin-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.admin-main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 22px 24px; }
+.admin-panel { flex: 1; min-height: 0; }
+.admin-sidebar { flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; border-top: 1px solid var(--line); }
+.sidebar-block { display: grid; gap: 6px; font-size: 11px; color: var(--ink-soft); }
+.sidebar-block strong { color: var(--ink); font-size: 12px; }
+.sidebar-block .secondary-button { justify-self: start; margin-top: 4px; }
+.feedback-block { gap: 10px; }
+.feedback-block .admin-list-heading { margin-bottom: 0; }
+
 .managed-turma select { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--text); font-size: 12px; }
+
+@media (min-width: 860px) {
+  .admin-body { flex-direction: row; overflow: hidden; }
+  .admin-main { overflow: hidden; border-right: 1px solid var(--line); }
+  .admin-panel { overflow-y: auto; }
+  .admin-sidebar { width: 280px; overflow-y: auto; border-top: 0; }
+}
 
 .admin-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .admin-list-heading input { width: min(310px, 100%); padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--text); font-size: 12px; border-radius: 6px; }
@@ -241,15 +255,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .soon-badge.pending { background: #f2c94c; color: #4a3b00; }
 .admin-row-main .feedback-message { color: var(--text); font-size: 12px; line-height: 1.4; }
 
+.admin-row.compact { grid-template-columns: 34px minmax(0, 1fr) 110px auto; gap: 10px; padding: 10px 12px; }
+.admin-row.compact .avatar { width: 30px; height: 30px; }
+.admin-row.compact .avatar svg { width: 14px; }
+.admin-row.compact .admin-row-main strong { font-size: 12px; }
+.admin-row.compact .admin-row-main span, .admin-row.compact .admin-row-meta span { font-size: 9px; }
+.admin-sidebar .admin-row.compact { grid-template-columns: 28px minmax(0, 1fr) auto; }
+.admin-sidebar .admin-row-meta { display: none; }
+
 .notif-dot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 2px var(--accent); }
 .notif-count { margin-left: auto; padding: 2px 7px; border-radius: 10px; background: #e5484d; color: white; font-size: 10px; font-weight: 800; }
+
+.admin-tabs { display: flex; gap: 3px; padding: 4px; margin-bottom: 20px; background: var(--surface-alt); border-radius: 8px; }
+.admin-tabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft); font-size: 12px; font-weight: 800; cursor: pointer; }
+.admin-tabs button.active { background: var(--paper); color: var(--ink); box-shadow: var(--shadow); }
+.admin-tabs .notif-count { margin-left: 0; }
 
 .side-menu { position: relative; width: min(320px, 85vw); height: 100%; overflow: auto; background: var(--paper); box-shadow: -10px 0 40px rgba(0,0,0,.25); animation: slide-in-right .2s ease; }
 @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
 .side-menu-list { display: grid; padding: 10px; }
-.side-menu-list button { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; }
-.side-menu-list button:hover:not(:disabled) { background: var(--surface-alt); }
+.side-menu-list button, .side-menu-list a { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font-size: 13px; font-weight: 700; text-align: left; text-decoration: none; cursor: pointer; }
+.side-menu-list button:hover:not(:disabled), .side-menu-list a:hover { background: var(--surface-alt); }
 .side-menu-list button:disabled { color: var(--ink-soft); cursor: default; }
+.side-menu-external .external-icon { margin-left: auto; color: var(--ink-soft); }
 .soon-badge { margin-left: auto; padding: 2px 7px; border-radius: 10px; background: var(--surface-alt); color: var(--ink-soft); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 
 .config-section { padding: 20px 0; border-bottom: 1px solid var(--line); }
@@ -292,11 +320,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .chip-overflow { padding-left: 0; font-size: 8px; }
   .modal-backdrop { padding: 0; place-items: stretch; }
   .admin-dialog, .day-dialog, .turma-picker, .config-dialog { max-height: 100vh; width: 100%; border-radius: 0; }
-  .dialog-header, .admin-content, .config-content { padding-left: 18px; padding-right: 18px; }
-  .admin-toolbar { align-items: flex-start; flex-direction: column; }
-  .toolbar-actions { width: 100%; }
-  .toolbar-actions button { flex: 1; }
-  .admin-row { grid-template-columns: 38px 1fr auto; gap: 10px; }
+  .dialog-header, .config-content { padding-left: 18px; padding-right: 18px; }
+  .admin-main, .admin-sidebar { padding-left: 18px; padding-right: 18px; }
+  .admin-row.compact { grid-template-columns: 34px 1fr auto; gap: 10px; }
   .admin-row-meta { grid-column: 2; }
   .row-actions { grid-column: 3; grid-row: 1 / span 2; }
   .activity-form { padding: 24px 18px; }

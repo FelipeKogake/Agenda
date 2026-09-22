@@ -8,11 +8,13 @@ import {
   ChevronRight,
   DoorOpen,
   Edit3,
+  ExternalLink,
   KeyRound,
   Lightbulb,
   ListChecks,
   LoaderCircle,
   LogOut,
+  MapPin,
   Menu,
   MessageSquarePlus,
   Plus,
@@ -463,6 +465,10 @@ function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onO
           <button type="button" onClick={onOpenAdmin}><KeyRound size={18} /> Sou representante</button>
           <button type="button" onClick={onOpenFeedback}><MessageSquarePlus size={18} /> Comentar melhoria</button>
           <button type="button" onClick={onOpenMySuggestions}><ListChecks size={18} /> Minhas sugestões</button>
+          <a className="side-menu-external" href="https://lucaslimaoliveira.github.io/professores/" target="_blank" rel="noopener noreferrer">
+            <MapPin size={18} /> Cadê o professor?
+            <ExternalLink size={14} className="external-icon" />
+          </a>
         </nav>
       </aside>
     </div>
@@ -854,6 +860,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const [managedSuggestions, setManagedSuggestions] = useState<Suggestion[]>([])
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([])
   const [adminSearch, setAdminSearch] = useState('')
+  const [adminTab, setAdminTab] = useState<'activities' | 'suggestions'>('activities')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -1081,95 +1088,120 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
           </div>
         ) : (
           <div className="admin-content">
-            <div className="admin-toolbar">
-              <div><span>Conectado como</span><strong>{user.email}</strong></div>
-              <div className="toolbar-actions">
-                <button className="secondary-button" onClick={() => signOut(auth)}><LogOut size={17} /> Sair</button>
-                <button className="primary-button compact" onClick={startCreate}><Plus size={18} /> Nova atividade</button>
+            <div className="admin-body">
+              <div className="admin-main">
+                <div className="admin-tabs">
+                  <button type="button" className={adminTab === 'activities' ? 'active' : ''} onClick={() => setAdminTab('activities')}>Atividades</button>
+                  <button type="button" className={adminTab === 'suggestions' ? 'active' : ''} onClick={() => setAdminTab('suggestions')}>
+                    Sugestões
+                    {pendingSuggestions.length > 0 && <span className="notif-count">{pendingSuggestions.length}</span>}
+                  </button>
+                </div>
+
+                <div className="admin-panel">
+                  {adminTab === 'activities' ? (
+                    <>
+                      <div className="admin-list-heading"><strong>Atividades cadastradas</strong><input aria-label="Buscar atividades" placeholder="Buscar por título ou descrição" value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} /></div>
+                      <div className="admin-list">
+                        {filteredActivities.length === 0 ? <p className="admin-empty">Nenhuma atividade encontrada.</p> : filteredActivities.map((activity) => (
+                          <article key={activity.id} className="admin-row compact">
+                            <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[activity.type] }}><UserRound /></div>
+                            <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]}</span></div>
+                            <div className="admin-row-meta"><span>{parseDateLabel(activity.date)}</span><strong>{activity.time ?? '—'}</strong></div>
+                            <div className="row-actions">
+                              <button onClick={() => startEdit(activity)} aria-label={`Editar ${activity.title}`}><Edit3 /></button>
+                              <button className="danger" onClick={() => removeActivity(activity)} aria-label={`Excluir ${activity.title}`}><Trash2 /></button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="admin-list-heading">
+                        <strong>Sugestões dos alunos</strong>
+                        {pendingSuggestions.length > 0 && <span className="soon-badge pending">{pendingSuggestions.length} pendente{pendingSuggestions.length === 1 ? '' : 's'}</span>}
+                      </div>
+                      <div className="admin-list">
+                        {pendingSuggestions.length === 0 ? <p className="admin-empty">Nenhuma sugestão pendente.</p> : pendingSuggestions.map((suggestion) => (
+                          <article key={suggestion.id} className="admin-row compact">
+                            <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[suggestion.type] }}><Lightbulb /></div>
+                            <div className="admin-row-main"><strong>{suggestion.title}</strong><span>{ACTIVITY_TYPE_LABELS[suggestion.type]} · {parseDateLabel(suggestion.date)}{suggestion.time ? ` · ${suggestion.time}` : ''}</span></div>
+                            <div className="admin-row-meta"><span>{suggestion.description}</span></div>
+                            <div className="row-actions">
+                              <button onClick={() => approveSuggestion(suggestion)} aria-label={`Aprovar ${suggestion.title}`}><Check /></button>
+                              <button className="danger" onClick={() => rejectSuggestion(suggestion)} aria-label={`Rejeitar ${suggestion.title}`}><X /></button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                      {processedSuggestions.length > 0 && (
+                        <>
+                          <div className="admin-list-heading"><strong>Sugestões avaliadas</strong></div>
+                          <div className="admin-list">
+                            {processedSuggestions.map((suggestion) => (
+                              <article key={suggestion.id} className="admin-row compact">
+                                <div className="avatar"><Lightbulb /></div>
+                                <div className="admin-row-main"><strong>{suggestion.title}</strong><span className={`status-badge status-${suggestion.status}`}>{SUGGESTION_STATUS_LABELS[suggestion.status]}</span></div>
+                                <div className="admin-row-meta"><span>{parseDateLabel(suggestion.date)}</span></div>
+                                <div className="row-actions">
+                                  <button className="danger" onClick={() => discardSuggestion(suggestion)} aria-label={`Remover ${suggestion.title}`}><Trash2 /></button>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            {notice && <div className="notice"><Check size={17} /> {notice}</div>}
 
-            {isSuperAdmin && (
-              <>
-                <div className="admin-list-heading">
-                  <strong>Feedback do site</strong>
-                  {feedbackList.length > 0 && <span className="soon-badge pending">{feedbackList.length}</span>}
+              <aside className="admin-sidebar">
+                <div className="sidebar-block">
+                  <span>Conectado como</span>
+                  <strong>{user.email}</strong>
+                  <button className="secondary-button" onClick={() => signOut(auth)}><LogOut size={17} /> Sair</button>
                 </div>
-                <div className="admin-list">
-                  {feedbackList.length === 0 ? <p className="admin-empty">Nenhum comentário recebido.</p> : feedbackList.map((item) => (
-                    <article key={item.id} className="admin-row">
-                      <div className="avatar"><MessageSquarePlus /></div>
-                      <div className="admin-row-main"><span className="feedback-message">{item.message}</span></div>
-                      <div className="admin-row-meta"><span>{item.turmaId ?? 'Geral'}</span><strong>{item.createdAt ? item.createdAt.toDate().toLocaleDateString('pt-BR') : '—'}</strong></div>
-                      <div className="row-actions">
-                        <button className="danger" onClick={() => discardFeedback(item)} aria-label="Remover comentário"><Trash2 /></button>
-                      </div>
-                    </article>
-                  ))}
+
+                <div className="sidebar-block managed-turma">
+                  <span>Gerenciando a turma</span>
+                  {isRepresentante ? (
+                    <strong>{managedTurma}</strong>
+                  ) : (
+                    <select value={managedTurma} onChange={(event) => setManagedTurma(event.target.value)}>
+                      {CLASS_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  )}
                 </div>
-              </>
-            )}
 
-            <div className="managed-turma">
-              <span>Gerenciando a turma</span>
-              {isRepresentante ? (
-                <strong>{managedTurma}</strong>
-              ) : (
-                <select value={managedTurma} onChange={(event) => setManagedTurma(event.target.value)}>
-                  {CLASS_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
-                </select>
-              )}
-            </div>
+                {adminTab === 'activities' && (
+                  <button className="primary-button compact" onClick={startCreate}><Plus size={18} /> Nova atividade</button>
+                )}
 
-            <div className="admin-list-heading">
-              <strong>Sugestões dos alunos</strong>
-              {pendingSuggestions.length > 0 && <span className="soon-badge pending">{pendingSuggestions.length} pendente{pendingSuggestions.length === 1 ? '' : 's'}</span>}
-            </div>
-            <div className="admin-list">
-              {pendingSuggestions.length === 0 ? <p className="admin-empty">Nenhuma sugestão pendente.</p> : pendingSuggestions.map((suggestion) => (
-                <article key={suggestion.id} className="admin-row">
-                  <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[suggestion.type] }}><Lightbulb /></div>
-                  <div className="admin-row-main"><strong>{suggestion.title}</strong><span>{ACTIVITY_TYPE_LABELS[suggestion.type]} · {parseDateLabel(suggestion.date)}{suggestion.time ? ` · ${suggestion.time}` : ''}</span></div>
-                  <div className="admin-row-meta"><span>{suggestion.description}</span></div>
-                  <div className="row-actions">
-                    <button onClick={() => approveSuggestion(suggestion)} aria-label={`Aprovar ${suggestion.title}`}><Check /></button>
-                    <button className="danger" onClick={() => rejectSuggestion(suggestion)} aria-label={`Rejeitar ${suggestion.title}`}><X /></button>
+                {notice && <div className="notice"><Check size={17} /> {notice}</div>}
+
+                {isSuperAdmin && (
+                  <div className="sidebar-block feedback-block">
+                    <div className="admin-list-heading">
+                      <strong>Feedback do site</strong>
+                      {feedbackList.length > 0 && <span className="soon-badge pending">{feedbackList.length}</span>}
+                    </div>
+                    <div className="admin-list">
+                      {feedbackList.length === 0 ? <p className="admin-empty">Nenhum comentário recebido.</p> : feedbackList.map((item) => (
+                        <article key={item.id} className="admin-row compact">
+                          <div className="avatar"><MessageSquarePlus /></div>
+                          <div className="admin-row-main"><span className="feedback-message">{item.message}</span></div>
+                          <div className="admin-row-meta"><span>{item.turmaId ?? 'Geral'}</span><strong>{item.createdAt ? item.createdAt.toDate().toLocaleDateString('pt-BR') : '—'}</strong></div>
+                          <div className="row-actions">
+                            <button className="danger" onClick={() => discardFeedback(item)} aria-label="Remover comentário"><Trash2 /></button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
                   </div>
-                </article>
-              ))}
-            </div>
-            {processedSuggestions.length > 0 && (
-              <>
-                <div className="admin-list-heading"><strong>Sugestões avaliadas</strong></div>
-                <div className="admin-list">
-                  {processedSuggestions.map((suggestion) => (
-                    <article key={suggestion.id} className="admin-row">
-                      <div className="avatar"><Lightbulb /></div>
-                      <div className="admin-row-main"><strong>{suggestion.title}</strong><span className={`status-badge status-${suggestion.status}`}>{SUGGESTION_STATUS_LABELS[suggestion.status]}</span></div>
-                      <div className="admin-row-meta"><span>{parseDateLabel(suggestion.date)}</span></div>
-                      <div className="row-actions">
-                        <button className="danger" onClick={() => discardSuggestion(suggestion)} aria-label={`Remover ${suggestion.title}`}><Trash2 /></button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="admin-list-heading"><strong>Atividades cadastradas</strong><input aria-label="Buscar atividades" placeholder="Buscar por título ou descrição" value={adminSearch} onChange={(event) => setAdminSearch(event.target.value)} /></div>
-            <div className="admin-list">
-              {filteredActivities.length === 0 ? <p className="admin-empty">Nenhuma atividade encontrada.</p> : filteredActivities.map((activity) => (
-                <article key={activity.id} className="admin-row">
-                  <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[activity.type] }}><UserRound /></div>
-                  <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]}</span></div>
-                  <div className="admin-row-meta"><span>{parseDateLabel(activity.date)}</span><strong>{activity.time ?? '—'}</strong></div>
-                  <div className="row-actions">
-                    <button onClick={() => startEdit(activity)} aria-label={`Editar ${activity.title}`}><Edit3 /></button>
-                    <button className="danger" onClick={() => removeActivity(activity)} aria-label={`Excluir ${activity.title}`}><Trash2 /></button>
-                  </div>
-                </article>
-              ))}
+                )}
+              </aside>
             </div>
           </div>
         )}
