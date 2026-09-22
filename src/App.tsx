@@ -125,7 +125,8 @@ function readStoredTurma(): string | null {
 
 function App() {
   const [turmaId, setTurmaId] = useState<string | null>(readStoredTurma)
-  const [activities, setActivities] = useState<Activity[]>([])
+  const [turmaActivities, setTurmaActivities] = useState<Activity[]>([])
+  const [globalActivities, setGlobalActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [monthCursor, setMonthCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
@@ -219,7 +220,7 @@ function App() {
 
   useEffect(() => {
     if (!turmaId) {
-      setActivities([])
+      setTurmaActivities([])
       setLoading(false)
       return
     }
@@ -228,7 +229,7 @@ function App() {
     return onSnapshot(
       activitiesQuery,
       (snapshot) => {
-        setActivities(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Activity))
+        setTurmaActivities(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Activity))
         setLoading(false)
         setLoadError('')
       },
@@ -238,6 +239,15 @@ function App() {
       },
     )
   }, [turmaId])
+
+  useEffect(() => {
+    const globalQuery = query(collection(db, 'activities'), where('turmaId', '==', null))
+    return onSnapshot(globalQuery, (snapshot) => {
+      setGlobalActivities(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Activity))
+    }, () => setGlobalActivities([]))
+  }, [])
+
+  const activities = useMemo(() => [...turmaActivities, ...globalActivities], [turmaActivities, globalActivities])
 
   const recentActivities = useMemo(() => {
     const threshold = Date.now() - RECENT_WINDOW_MS
@@ -358,7 +368,7 @@ function App() {
                         <span className="day-chips">
                           {visible.map((activity) => (
                             <span key={activity.id} className="activity-chip">
-                              <span className="chip-dot" style={{ background: ACTIVITY_TYPE_COLORS[activity.type] }} />
+                              <span className={`chip-dot ${activity.turmaId === null ? 'general' : ''}`} style={{ background: ACTIVITY_TYPE_COLORS[activity.type] }} />
                               <span className="chip-label">{activity.title}</span>
                             </span>
                           ))}
@@ -656,7 +666,12 @@ function DocsDialog({ onClose }: { onClose: () => void }) {
 
           <div className="config-section">
             <h3>Área administrativa</h3>
-            <p>Cada turma tem um ou mais representantes, que fazem login para criar, editar e excluir atividades e avaliar sugestões. Um representante só gerencia a própria turma; o super-admin gerencia todas e também lê os comentários enviados em "Comentar melhoria".</p>
+            <p>Cada turma tem um ou mais representantes, que fazem login para criar, editar e excluir atividades e avaliar sugestões. Um representante só gerencia a própria turma; o super-admin gerencia todas e também lê os comentários enviados em "Comentar melhoria". O card de cada atividade mostra o e-mail de quem publicou, pra facilitar contato.</p>
+          </div>
+
+          <div className="config-section">
+            <h3>Eventos gerais</h3>
+            <p>Além das atividades de cada turma, qualquer representante (ou o super-admin) pode criar um <strong>evento geral</strong> — aparece com o selo "Geral" no calendário de todas as turmas ao mesmo tempo. Só quem criou (ou o super-admin) pode editar ou excluir depois.</p>
           </div>
 
           <div className="config-section">
@@ -925,10 +940,12 @@ function NotificationsDialog({ activities, onClose }: { activities: Activity[]; 
               <article key={activity.id} className="activity-detail" style={{ borderLeftColor: ACTIVITY_TYPE_COLORS[activity.type] }}>
                 <div className="activity-detail-heading">
                   <span className="type-badge" style={{ background: ACTIVITY_TYPE_COLORS[activity.type] }}>{ACTIVITY_TYPE_LABELS[activity.type]}</span>
+                  {activity.turmaId === null && <span className="type-badge general-badge">Geral</span>}
                   <span className={`status-badge ${isNew ? 'status-nova' : 'status-atualizada'}`}>{isNew ? 'Nova' : 'Atualizada'}</span>
                 </div>
                 <h3>{activity.title}</h3>
                 <p>{parseDateLabel(activity.date)}{activity.time ? ` · ${activity.time}` : ''}{changedAt ? ` — alterado em ${changedAt.toLocaleDateString('pt-BR')}` : ''}</p>
+                {activity.createdByEmail && <p className="activity-author">Publicado por {activity.createdByEmail}</p>}
               </article>
             )
           })}
@@ -951,10 +968,12 @@ function DayDetail({ day, activities, onClose }: { day: Date; activities: Activi
             <article key={activity.id} className="activity-detail" style={{ borderLeftColor: ACTIVITY_TYPE_COLORS[activity.type] }}>
               <div className="activity-detail-heading">
                 <span className="type-badge" style={{ background: ACTIVITY_TYPE_COLORS[activity.type] }}>{ACTIVITY_TYPE_LABELS[activity.type]}</span>
+                {activity.turmaId === null && <span className="type-badge general-badge">Geral</span>}
                 {activity.time && <span className="activity-time">{activity.time}</span>}
               </div>
               <h3>{activity.title}</h3>
               {activity.description && <p>{activity.description}</p>}
+              {activity.createdByEmail && <p className="activity-author">Publicado por {activity.createdByEmail}</p>}
             </article>
           ))}
         </div>
@@ -978,6 +997,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const [authChecked, setAuthChecked] = useState(false)
   const [managedTurma, setManagedTurma] = useState<string>(publicTurmaId ?? CLASS_NAMES[0])
   const [managedActivities, setManagedActivities] = useState<Activity[]>([])
+  const [globalActivities, setGlobalActivities] = useState<Activity[]>([])
   const [managedSuggestions, setManagedSuggestions] = useState<Suggestion[]>([])
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([])
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
@@ -987,6 +1007,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Activity | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [isGlobalForm, setIsGlobalForm] = useState(false)
   const [hasTime, setHasTime] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [notice, setNotice] = useState('')
@@ -1033,6 +1054,14 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   }, [profile, managedTurma])
 
   useEffect(() => {
+    if (!profile) return
+    const globalQuery = query(collection(db, 'activities'), where('turmaId', '==', null))
+    return onSnapshot(globalQuery, (snapshot) => {
+      setGlobalActivities(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Activity))
+    })
+  }, [profile])
+
+  useEffect(() => {
     if (!profile || !managedTurma) return
     const suggestionsQuery = query(collection(db, 'suggestions'), where('turmaId', '==', managedTurma))
     return onSnapshot(suggestionsQuery, (snapshot) => {
@@ -1063,6 +1092,10 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   const filteredActivities = managedActivities
     .filter((activity) => matchesSearch(activity, adminSearch))
     .sort((a, b) => a.date.localeCompare(b.date) || compareActivities(a, b))
+  const filteredGlobalActivities = globalActivities
+    .filter((activity) => matchesSearch(activity, adminSearch))
+    .sort((a, b) => a.date.localeCompare(b.date) || compareActivities(a, b))
+  const canManageGlobalActivity = (activity: Activity) => isSuperAdmin || activity.createdBy === user?.uid
   const pendingSuggestions = managedSuggestions
     .filter((item) => item.status === 'pendente')
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -1093,6 +1126,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   function startCreate() {
     setEditing(null)
     setForm({ ...emptyForm, date: dateKey(new Date()) })
+    setIsGlobalForm(false)
     setHasTime(false)
     setSaveError('')
     setFormOpen(true)
@@ -1101,6 +1135,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
   function startEdit(activity: Activity) {
     setEditing(activity)
     setForm({ title: activity.title, description: activity.description, type: activity.type, date: activity.date, time: activity.time })
+    setIsGlobalForm(activity.turmaId === null)
     setHasTime(Boolean(activity.time))
     setSaveError('')
     setFormOpen(true)
@@ -1111,13 +1146,20 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     setBusy(true)
     setSaveError('')
     try {
-      const payload: ActivityInput = { ...form, time: hasTime ? form.time : null, turmaId: managedTurma }
+      const turmaIdForSave = editing ? editing.turmaId : (isGlobalForm ? null : managedTurma)
+      const payload = { ...form, time: hasTime ? form.time : null, turmaId: turmaIdForSave }
       if (editing) {
         await updateDoc(doc(db, 'activities', editing.id), { ...payload, updatedAt: serverTimestamp() })
         setNotice('Atividade atualizada.')
       } else {
-        await addDoc(collection(db, 'activities'), { ...payload, createdBy: user?.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
-        setNotice('Atividade adicionada.')
+        await addDoc(collection(db, 'activities'), {
+          ...payload,
+          createdBy: user?.uid,
+          createdByEmail: user?.email ?? null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+        setNotice(isGlobalForm ? 'Evento geral adicionado.' : 'Atividade adicionada.')
       }
       setFormOpen(false)
       window.setTimeout(() => setNotice(''), 2800)
@@ -1149,6 +1191,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
         time: suggestion.time,
         turmaId: suggestion.turmaId,
         createdBy: user?.uid,
+        createdByEmail: user?.email ?? null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
@@ -1280,6 +1323,23 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                           </article>
                         ))}
                       </div>
+
+                      <div className="admin-list-heading"><strong>Eventos gerais</strong><span className="config-hint" style={{ margin: 0 }}>Valem para todas as turmas</span></div>
+                      <div className="admin-list">
+                        {filteredGlobalActivities.length === 0 ? <p className="admin-empty">Nenhum evento geral cadastrado.</p> : filteredGlobalActivities.map((activity) => (
+                          <article key={activity.id} className="admin-row compact">
+                            <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[activity.type] }}><Megaphone /></div>
+                            <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]} · {activity.createdByEmail ?? 'sem autor'}</span></div>
+                            <div className="admin-row-meta"><span>{parseDateLabel(activity.date)}</span><strong>{activity.time ?? '—'}</strong></div>
+                            {canManageGlobalActivity(activity) && (
+                              <div className="row-actions">
+                                <button onClick={() => startEdit(activity)} aria-label={`Editar ${activity.title}`}><Edit3 /></button>
+                                <button className="danger" onClick={() => removeActivity(activity)} aria-label={`Excluir ${activity.title}`}><Trash2 /></button>
+                              </div>
+                            )}
+                          </article>
+                        ))}
+                      </div>
                     </>
                   ) : (
                     <>
@@ -1400,6 +1460,11 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                 <label className="wide">Título<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
                 <label>Tipo<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ActivityType })}>{ACTIVITY_TYPES.map((type) => <option value={type} key={type}>{ACTIVITY_TYPE_LABELS[type]}</option>)}</select></label>
                 <label>Data<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
+                {editing ? (
+                  editing.turmaId === null && <p className="config-hint wide">Este é um evento geral — vale para todas as turmas. Não é possível transformar em específico de uma turma depois.</p>
+                ) : (
+                  <label className="toggle wide"><input type="checkbox" checked={isGlobalForm} onChange={(event) => setIsGlobalForm(event.target.checked)} /><span /> Evento geral (aparece em todas as turmas)</label>
+                )}
                 <label className="toggle wide"><input type="checkbox" checked={hasTime} onChange={(event) => { setHasTime(event.target.checked); if (!event.target.checked) setForm({ ...form, time: null }) }} /><span /> Tem horário definido</label>
                 {hasTime && <label>Horário<input required type="time" value={form.time ?? ''} onChange={(event) => setForm({ ...form, time: event.target.value })} /></label>}
                 <label className="wide">Descrição<textarea rows={3} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Detalhes, capítulos, critérios de entrega…" /></label>

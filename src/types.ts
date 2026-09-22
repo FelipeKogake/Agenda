@@ -22,7 +22,9 @@ export type Activity = {
   type: ActivityType
   date: string // formato YYYY-MM-DD
   time: string | null // formato HH:MM
-  turmaId: string
+  turmaId: string | null // null = evento geral, visível em todas as turmas
+  createdBy?: string | null
+  createdByEmail?: string | null
   createdAt?: { toDate: () => Date } | null
   updatedAt?: { toDate: () => Date } | null
 }

@@ -25,13 +25,32 @@ service cloud.firestore {
       return isSuperAdmin() || isRepresentanteOf(turmaId);
     }
 
+    // Qualquer representante (de qualquer turma) ou o super-admin — usado só
+    // para criar eventos gerais, que não pertencem a uma turma específica.
+    function isAnyAdmin() {
+      return isSignedIn() && adminData().role in ['representante', 'superadmin'];
+    }
+
+    // Evento geral (turmaId nulo): quem criou ou o super-admin podem editar/excluir.
+    // Atividade de turma: continua exigindo canManage() daquela turma.
+    function canManageActivity(data) {
+      return data.turmaId == null
+        ? (isSuperAdmin() || (isSignedIn() && data.createdBy == request.auth.uid))
+        : canManage(data.turmaId);
+    }
+
+    function canCreateActivity(data) {
+      return data.createdBy == request.auth.uid
+        && (data.turmaId == null ? isAnyAdmin() : canManage(data.turmaId));
+    }
+
     function hasActivityShape(data) {
       return data.title is string && data.title.size() > 0 && data.title.size() <= 120
         && data.description is string && data.description.size() <= 2000
         && data.type in ['tarefa', 'licao', 'trabalho', 'evento']
         && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && (data.time == null || (data.time is string && data.time.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
-        && data.turmaId is string && data.turmaId.size() > 0;
+        && (data.turmaId == null || (data.turmaId is string && data.turmaId.size() > 0));
     }
 
     function isValidActivity(data) {
@@ -40,6 +59,7 @@ service cloud.firestore {
 
     function isValidSuggestion(data) {
       return hasActivityShape(data)
+        && data.turmaId is string && data.turmaId.size() > 0
         && data.status == 'pendente'
         && data.createdAt == request.time;
     }
@@ -62,18 +82,20 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
 
-    // Atividades (tarefas, lições, trabalhos, eventos) de uma turma.
+    // Atividades (tarefas, lições, trabalhos, eventos) de uma turma, ou eventos
+    // gerais (turmaId nulo) visíveis em todas as turmas.
     match /activities/{activityId} {
       allow read: if true;
 
-      allow create: if canManage(request.resource.data.turmaId)
+      allow create: if isValidActivity(request.resource.data)
+        && canCreateActivity(request.resource.data);
+
+      // turmaId não muda depois de criado (não dá pra "converter" turma <-> geral).
+      allow update: if canManageActivity(resource.data)
+        && request.resource.data.turmaId == resource.data.turmaId
         && isValidActivity(request.resource.data);
 
-      allow update: if canManage(resource.data.turmaId)
-        && canManage(request.resource.data.turmaId)
-        && isValidActivity(request.resource.data);
-
-      allow delete: if canManage(resource.data.turmaId);
+      allow delete: if canManageActivity(resource.data);
     }
 
     // Sugestões de atividades enviadas por alunos (sem login). Expira sozinha em

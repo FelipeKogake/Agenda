@@ -134,6 +134,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .day-chips { display: grid; gap: 2px; min-height: 0; overflow: hidden; }
 .activity-chip { display: flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 20px; background: var(--surface-alt); color: var(--text); font-size: 10px; font-weight: 600; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip-dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; }
+.chip-dot.general { box-shadow: 0 0 0 2px var(--accent); }
 .chip-overflow { font-size: 9px; color: var(--ink-soft); padding-left: 6px; font-weight: 700; }
 
 .modal-backdrop, .drawer-backdrop { position: fixed; inset: 0; z-index: 20; padding: 20px; background: rgba(9, 20, 48, .55); backdrop-filter: blur(6px); }
@@ -152,6 +153,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .activity-time { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink-soft); }
 .activity-detail h3 { margin: 8px 0 4px; font-size: 15px; color: var(--text); }
 .activity-detail p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+.activity-author { margin-top: 8px !important; font-style: italic; font-size: 11px !important; }
+.general-badge { background: #5b6b83; }
 
 .turma-picker { position: relative; width: min(440px, 100%); max-height: min(600px, calc(100vh - 40px)); overflow: auto; background: var(--paper); box-shadow: var(--shadow); border-radius: 10px; padding: 34px 30px; text-align: center; }
 .login-symbol { width: 60px; height: 60px; display: grid; place-items: center; margin: 0 auto 18px; border-radius: 50%; color: var(--accent); background: var(--surface-alt); }
