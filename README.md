@@ -100,6 +100,11 @@ Comentário de melhoria sobre o site (não é por turma), enviado por qualquer v
 - `turmaId`: turma que a pessoa tinha selecionada ao enviar (contexto), ou `null`.
 - Representantes (não super-admin) não têm acesso a essa tela — é sobre o site inteiro, não sobre uma turma.
 
+## Publicar no GitHub Pages
+
+1. Em **Settings > Pages**, selecione **GitHub Actions** como fonte de publicação.
+2. Envie as alterações para a branch `main`. O workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) faz a publicação automaticamente.
+
 ## Comandos
 
 ```bash
