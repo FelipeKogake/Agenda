@@ -23,6 +23,8 @@ export type Activity = {
   date: string // formato YYYY-MM-DD
   time: string | null // formato HH:MM
   turmaId: string
+  createdAt?: { toDate: () => Date } | null
+  updatedAt?: { toDate: () => Date } | null
 }
 
 export type ActivityInput = Omit<Activity, 'id'>

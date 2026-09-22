@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
+  Bell,
   Calendar,
   Check,
   ChevronLeft,
@@ -60,6 +61,7 @@ import {
   type SuggestionInput,
 } from './types'
 import { addMySuggestionId, readMySuggestionIds, removeMySuggestionId } from './mySuggestions'
+import { markNotificationsSeenNow, readLastSeen } from './notifications'
 import {
   NEON_COLORS,
   NEON_COLOR_LABELS,
@@ -87,6 +89,15 @@ import {
 } from './accessibility'
 
 const TURMA_STORAGE_KEY = 'agenda:turma'
+const RECENT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000
+
+function updatedAtMs(activity: Activity): number {
+  return activity.updatedAt?.toDate().getTime() ?? 0
+}
+
+function createdAtMs(activity: Activity): number {
+  return activity.createdAt?.toDate().getTime() ?? 0
+}
 
 const emptyForm: Omit<ActivityInput, 'turmaId'> = {
   title: '',
@@ -118,6 +129,8 @@ function App() {
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [mySuggestionsOpen, setMySuggestionsOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsSeenAt, setNotificationsSeenAt] = useState(0)
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
   const [neon, setNeonState] = useState<NeonColor>(readStoredNeon)
   const [fontScale, setFontScaleState] = useState<FontScale>(readStoredFontScale)
@@ -172,6 +185,10 @@ function App() {
     document.title = turmaId ? `Agenda — ${turmaId}` : 'Agenda da turma'
   }, [turmaId])
 
+  useEffect(() => {
+    setNotificationsSeenAt(turmaId ? readLastSeen(turmaId) : 0)
+  }, [turmaId])
+
   function chooseTurma(value: string) {
     setTurmaId(value)
     try {
@@ -202,6 +219,15 @@ function App() {
       },
     )
   }, [turmaId])
+
+  const recentActivities = useMemo(() => {
+    const threshold = Date.now() - RECENT_WINDOW_MS
+    return activities
+      .filter((activity) => updatedAtMs(activity) >= threshold)
+      .sort((a, b) => updatedAtMs(b) - updatedAtMs(a))
+  }, [activities])
+
+  const unseenNotifications = recentActivities.filter((activity) => updatedAtMs(activity) > notificationsSeenAt).length
 
   const activitiesByDay = useMemo(() => {
     const map = new Map<string, Activity[]>()
@@ -252,6 +278,7 @@ function App() {
           onClick={() => setMenuOpen(true)}
         >
           <Menu size={20} strokeWidth={2.3} aria-hidden="true" />
+          {unseenNotifications > 0 && <span className="notif-dot" aria-hidden="true" />}
         </button>
       </header>
 
@@ -341,6 +368,12 @@ function App() {
           onOpenAdmin={() => { openAdmin(); setMenuOpen(false) }}
           onOpenMySuggestions={() => { setMySuggestionsOpen(true); setMenuOpen(false) }}
           onOpenFeedback={() => { setFeedbackOpen(true); setMenuOpen(false) }}
+          onOpenNotifications={() => {
+            setNotificationsOpen(true)
+            setMenuOpen(false)
+            if (turmaId) setNotificationsSeenAt(markNotificationsSeenNow(turmaId))
+          }}
+          unseenNotifications={unseenNotifications}
         />
       )}
 
@@ -349,6 +382,8 @@ function App() {
       {mySuggestionsOpen && <MySuggestionsDialog onClose={() => setMySuggestionsOpen(false)} />}
 
       {feedbackOpen && <FeedbackDialog turmaId={turmaId} onClose={() => setFeedbackOpen(false)} />}
+
+      {notificationsOpen && <NotificationsDialog activities={recentActivities} onClose={() => setNotificationsOpen(false)} />}
 
       {configOpen && (
         <ConfigDialog
@@ -397,12 +432,14 @@ function VLibrasWidget() {
   )
 }
 
-function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onOpenFeedback }: {
+function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onOpenFeedback, onOpenNotifications, unseenNotifications }: {
   onClose: () => void
   onOpenConfig: () => void
   onOpenAdmin: () => void
   onOpenMySuggestions: () => void
   onOpenFeedback: () => void
+  onOpenNotifications: () => void
+  unseenNotifications: number
 }) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
@@ -418,6 +455,10 @@ function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onO
           <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
         </div>
         <nav className="side-menu-list">
+          <button type="button" onClick={onOpenNotifications}>
+            <Bell size={18} /> Notificações
+            {unseenNotifications > 0 && <span className="notif-count">{unseenNotifications}</span>}
+          </button>
           <button type="button" onClick={onOpenConfig}><Settings size={18} /> Configurações</button>
           <button type="button" onClick={onOpenAdmin}><KeyRound size={18} /> Sou representante</button>
           <button type="button" onClick={onOpenFeedback}><MessageSquarePlus size={18} /> Comentar melhoria</button>
@@ -728,6 +769,43 @@ function FeedbackDialog({ turmaId, onClose }: { turmaId: string | null; onClose:
             <div className="form-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button compact" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : 'Enviar comentário'}</button></div>
           </form>
         )}
+      </section>
+    </div>
+  )
+}
+
+function NotificationsDialog({ activities, onClose }: { activities: Activity[]; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="day-dialog" role="dialog" aria-modal="true" aria-labelledby="notifications-title">
+        <div className="dialog-header">
+          <div><p className="eyebrow dark">ÚLTIMOS 14 DIAS</p><h2 id="notifications-title">Notificações</h2></div>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        <div className="day-dialog-list">
+          {activities.length === 0 ? (
+            <p className="admin-empty">Nenhuma novidade na agenda nos últimos 14 dias.</p>
+          ) : activities.map((activity) => {
+            const isNew = createdAtMs(activity) === updatedAtMs(activity)
+            const changedAt = activity.updatedAt?.toDate()
+            return (
+              <article key={activity.id} className="activity-detail" style={{ borderLeftColor: ACTIVITY_TYPE_COLORS[activity.type] }}>
+                <div className="activity-detail-heading">
+                  <span className="type-badge" style={{ background: ACTIVITY_TYPE_COLORS[activity.type] }}>{ACTIVITY_TYPE_LABELS[activity.type]}</span>
+                  <span className={`status-badge ${isNew ? 'status-nova' : 'status-atualizada'}`}>{isNew ? 'Nova' : 'Atualizada'}</span>
+                </div>
+                <h3>{activity.title}</h3>
+                <p>{parseDateLabel(activity.date)}{activity.time ? ` · ${activity.time}` : ''}{changedAt ? ` — alterado em ${changedAt.toLocaleDateString('pt-BR')}` : ''}</p>
+              </article>
+            )
+          })}
+        </div>
       </section>
     </div>
   )

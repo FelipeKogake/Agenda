@@ -235,10 +235,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .status-pendente { background: #f2c94c; color: #4a3b00; }
-.status-aprovada { background: #1fa971; color: white; }
+.status-aprovada, .status-nova { background: #1fa971; color: white; }
 .status-rejeitada { background: #d1503a; color: white; }
+.status-atualizada { background: #1877cc; color: white; }
 .soon-badge.pending { background: #f2c94c; color: #4a3b00; }
 .admin-row-main .feedback-message { color: var(--text); font-size: 12px; line-height: 1.4; }
+
+.notif-dot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 2px var(--accent); }
+.notif-count { margin-left: auto; padding: 2px 7px; border-radius: 10px; background: #e5484d; color: white; font-size: 10px; font-weight: 800; }
 
 .side-menu { position: relative; width: min(320px, 85vw); height: 100%; overflow: auto; background: var(--paper); box-shadow: -10px 0 40px rgba(0,0,0,.25); animation: slide-in-right .2s ease; }
 @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
