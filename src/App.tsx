@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   Bell,
+  BookOpen,
   Calendar,
   Check,
   ChevronLeft,
@@ -135,6 +136,7 @@ function App() {
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [mySuggestionsOpen, setMySuggestionsOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [docsOpen, setDocsOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(0)
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
@@ -390,9 +392,12 @@ function App() {
             setMenuOpen(false)
             if (turmaId) setNotificationsSeenAt(markNotificationsSeenNow(turmaId))
           }}
+          onOpenDocs={() => { setDocsOpen(true); setMenuOpen(false) }}
           unseenNotifications={unseenNotifications}
         />
       )}
+
+      {docsOpen && <DocsDialog onClose={() => setDocsOpen(false)} />}
 
       {suggestOpen && turmaId && <SuggestDialog turmaId={turmaId} onClose={() => setSuggestOpen(false)} />}
 
@@ -459,13 +464,14 @@ function VLibrasWidget() {
   )
 }
 
-function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onOpenFeedback, onOpenNotifications, unseenNotifications }: {
+function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onOpenFeedback, onOpenNotifications, onOpenDocs, unseenNotifications }: {
   onClose: () => void
   onOpenConfig: () => void
   onOpenAdmin: () => void
   onOpenMySuggestions: () => void
   onOpenFeedback: () => void
   onOpenNotifications: () => void
+  onOpenDocs: () => void
   unseenNotifications: number
 }) {
   useEffect(() => {
@@ -487,6 +493,7 @@ function SideMenu({ onClose, onOpenConfig, onOpenAdmin, onOpenMySuggestions, onO
             {unseenNotifications > 0 && <span className="notif-count">{unseenNotifications}</span>}
           </button>
           <button type="button" onClick={onOpenConfig}><Settings size={18} /> Configurações</button>
+          <button type="button" onClick={onOpenDocs}><BookOpen size={18} /> Como funciona</button>
           <button type="button" onClick={onOpenAdmin}><KeyRound size={18} /> Sou representante</button>
           <button type="button" onClick={onOpenFeedback}><MessageSquarePlus size={18} /> Comentar melhoria</button>
           <button type="button" onClick={onOpenMySuggestions}><ListChecks size={18} /> Minhas sugestões</button>
@@ -598,6 +605,73 @@ function ConfigDialog({
           <div className="config-section muted">
             <h3>Apoie o projeto</h3>
             <p>Em breve: chave Pix para quem quiser pagar um café.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function DocsDialog({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="admin-dialog docs-dialog" role="dialog" aria-modal="true" aria-labelledby="docs-title">
+        <div className="dialog-header">
+          <div><p className="eyebrow dark">AJUDA</p><h2 id="docs-title">Como funciona a Agenda</h2></div>
+          <button className="icon-button" onClick={onClose} aria-label="Fechar"><X /></button>
+        </div>
+        <div className="config-content">
+          <div className="config-section">
+            <h3>O que é</h3>
+            <p>Um calendário mensal com as tarefas, lições, trabalhos e eventos da sua turma. A leitura é pública — não precisa de login para consultar.</p>
+          </div>
+
+          <div className="config-section">
+            <h3>Tipos de atividade</h3>
+            <div className="docs-type-legend">
+              {ACTIVITY_TYPES.map((type) => (
+                <span key={type} className="docs-type-item">
+                  <span className="chip-dot" style={{ background: ACTIVITY_TYPE_COLORS[type] }} />
+                  {ACTIVITY_TYPE_LABELS[type]}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="config-section">
+            <h3>Sua turma</h3>
+            <p>Na primeira visita, você escolhe sua turma e o navegador lembra essa escolha. Dá pra trocar quando quiser pelo seletor no topo da página — outras turmas continuam acessíveis, só a sua fica salva como padrão.</p>
+          </div>
+
+          <div className="config-section">
+            <h3>Sugerir uma atividade</h3>
+            <p>Qualquer aluno pode sugerir uma atividade pelo botão "Sugerir atividade", sem precisar de login. O representante da turma avalia: se aprovar, a atividade já entra na agenda automaticamente. Você acompanha o status (pendente/aprovada/rejeitada) em "Minhas sugestões", no menu.</p>
+          </div>
+
+          <div className="config-section">
+            <h3>Área administrativa</h3>
+            <p>Cada turma tem um ou mais representantes, que fazem login para criar, editar e excluir atividades e avaliar sugestões. Um representante só gerencia a própria turma; o super-admin gerencia todas e também lê os comentários enviados em "Comentar melhoria".</p>
+          </div>
+
+          <div className="config-section">
+            <h3>Personalização</h3>
+            <p>Em Configurações (menu) dá pra trocar o tema (Padrão, Escuro ou Cyberpunk com cor neon à sua escolha), ajustar tamanho da fonte, ativar alto contraste e reduzir animações. O site também conta com o VLibras (tradutor de Libras), sempre disponível no canto da tela.</p>
+          </div>
+
+          <div className="config-section">
+            <h3>Seus dados</h3>
+            <p>Alunos não criam conta. O navegador guarda localmente (no seu próprio aparelho) só a turma escolhida, o tema, as preferências de acessibilidade e os IDs das sugestões que você enviou — nada disso é compartilhado com outras pessoas nem sai do seu navegador.</p>
+          </div>
+
+          <div className="config-section muted">
+            <h3>Encontrou um problema?</h3>
+            <p>Manda pra gente em "Comentar melhoria", no menu.</p>
           </div>
         </div>
       </section>
