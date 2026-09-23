@@ -42,6 +42,7 @@ import {
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import { CLASS_NAMES } from './classNames'
+import { SUBJECTS } from './subjects'
 import {
   MONTH_LABELS,
   WEEKDAY_LABELS,
@@ -110,6 +111,7 @@ const emptyForm: Omit<ActivityInput, 'turmaId'> = {
   title: '',
   description: '',
   type: 'tarefa',
+  subject: null,
   date: dateKey(new Date()),
   time: null,
 }
@@ -125,6 +127,7 @@ function readStoredTurma(): string | null {
 
 function App() {
   const [turmaId, setTurmaId] = useState<string | null>(readStoredTurma)
+  const [subjectFilter, setSubjectFilter] = useState('')
   const [turmaActivities, setTurmaActivities] = useState<Activity[]>([])
   const [globalActivities, setGlobalActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
@@ -247,7 +250,10 @@ function App() {
     }, () => setGlobalActivities([]))
   }, [])
 
-  const activities = useMemo(() => [...turmaActivities, ...globalActivities], [turmaActivities, globalActivities])
+  const activities = useMemo(() => {
+    const merged = [...turmaActivities, ...globalActivities]
+    return subjectFilter ? merged.filter((activity) => activity.subject === subjectFilter) : merged
+  }, [turmaActivities, globalActivities, subjectFilter])
 
   const recentActivities = useMemo(() => {
     const threshold = Date.now() - RECENT_WINDOW_MS
@@ -321,6 +327,14 @@ function App() {
                 {CLASS_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
               </select>
             </label>
+            {turmaId && (
+              <label className="turma-select-inline" aria-label="Filtrar por matéria">
+                <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)}>
+                  <option value="">Todas as matérias</option>
+                  {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                </select>
+              </label>
+            )}
             {turmaId && (
               <button type="button" className="secondary-button" onClick={() => setSuggestOpen(true)}>
                 <Lightbulb size={16} /> Sugerir atividade
@@ -655,6 +669,11 @@ function DocsDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="config-section">
+            <h3>Matéria</h3>
+            <p>Cada atividade pode ter uma matéria associada (opcional). Use o filtro "Todas as matérias" ao lado do seletor de turma para ver só a matéria que te interessa.</p>
+          </div>
+
+          <div className="config-section">
             <h3>Sua turma</h3>
             <p>Na primeira visita, você escolhe sua turma e o navegador lembra essa escolha. Dá pra trocar quando quiser pelo seletor no topo da página — outras turmas continuam acessíveis, só a sua fica salva como padrão.</p>
           </div>
@@ -763,6 +782,7 @@ function SuggestDialog({ turmaId, onClose }: { turmaId: string; onClose: () => v
             <div className="form-grid">
               <label className="wide">Título<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
               <label>Tipo<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ActivityType })}>{ACTIVITY_TYPES.map((type) => <option value={type} key={type}>{ACTIVITY_TYPE_LABELS[type]}</option>)}</select></label>
+              <label className="wide">Matéria<select value={form.subject ?? ''} onChange={(event) => setForm({ ...form, subject: event.target.value || null })}><option value="">Sem matéria específica</option>{SUBJECTS.map((subject) => <option value={subject} key={subject}>{subject}</option>)}</select></label>
               <label>Data<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
               <label className="toggle wide"><input type="checkbox" checked={hasTime} onChange={(event) => { setHasTime(event.target.checked); if (!event.target.checked) setForm({ ...form, time: null }) }} /><span /> Tem horário definido</label>
               {hasTime && <label>Horário<input required type="time" value={form.time ?? ''} onChange={(event) => setForm({ ...form, time: event.target.value })} /></label>}
@@ -944,6 +964,7 @@ function NotificationsDialog({ activities, onClose }: { activities: Activity[]; 
                   <span className={`status-badge ${isNew ? 'status-nova' : 'status-atualizada'}`}>{isNew ? 'Nova' : 'Atualizada'}</span>
                 </div>
                 <h3>{activity.title}</h3>
+                {activity.subject && <p className="activity-subject">{activity.subject}</p>}
                 <p>{parseDateLabel(activity.date)}{activity.time ? ` · ${activity.time}` : ''}{changedAt ? ` — alterado em ${changedAt.toLocaleDateString('pt-BR')}` : ''}</p>
                 {activity.createdByEmail && <p className="activity-author">Publicado por {activity.createdByEmail}</p>}
               </article>
@@ -972,6 +993,7 @@ function DayDetail({ day, activities, onClose }: { day: Date; activities: Activi
                 {activity.time && <span className="activity-time">{activity.time}</span>}
               </div>
               <h3>{activity.title}</h3>
+              {activity.subject && <p className="activity-subject">{activity.subject}</p>}
               {activity.description && <p>{activity.description}</p>}
               {activity.createdByEmail && <p className="activity-author">Publicado por {activity.createdByEmail}</p>}
             </article>
@@ -1134,7 +1156,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
 
   function startEdit(activity: Activity) {
     setEditing(activity)
-    setForm({ title: activity.title, description: activity.description, type: activity.type, date: activity.date, time: activity.time })
+    setForm({ title: activity.title, description: activity.description, type: activity.type, subject: activity.subject, date: activity.date, time: activity.time })
     setIsGlobalForm(activity.turmaId === null)
     setHasTime(Boolean(activity.time))
     setSaveError('')
@@ -1186,6 +1208,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
         title: suggestion.title,
         description: suggestion.description,
         type: suggestion.type,
+        subject: suggestion.subject,
         date: suggestion.date,
         time: suggestion.time,
         turmaId: suggestion.turmaId,
@@ -1313,7 +1336,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                         {filteredActivities.length === 0 ? <p className="admin-empty">Nenhuma atividade encontrada.</p> : filteredActivities.map((activity) => (
                           <article key={activity.id} className="admin-row compact">
                             <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[activity.type] }}><UserRound /></div>
-                            <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]}</span></div>
+                            <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]}{activity.subject ? ` · ${activity.subject}` : ''}</span></div>
                             <div className="admin-row-meta"><span>{parseDateLabel(activity.date)}</span><strong>{activity.time ?? '—'}</strong></div>
                             <div className="row-actions">
                               <button onClick={() => startEdit(activity)} aria-label={`Editar ${activity.title}`}><Edit3 /></button>
@@ -1328,7 +1351,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                         {filteredGlobalActivities.length === 0 ? <p className="admin-empty">Nenhum evento geral cadastrado.</p> : filteredGlobalActivities.map((activity) => (
                           <article key={activity.id} className="admin-row compact">
                             <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[activity.type] }}><Megaphone /></div>
-                            <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]} · {activity.createdByEmail ?? 'sem autor'}</span></div>
+                            <div className="admin-row-main"><strong>{activity.title}</strong><span>{ACTIVITY_TYPE_LABELS[activity.type]}{activity.subject ? ` · ${activity.subject}` : ''} · {activity.createdByEmail ?? 'sem autor'}</span></div>
                             <div className="admin-row-meta"><span>{parseDateLabel(activity.date)}</span><strong>{activity.time ?? '—'}</strong></div>
                             {canManageGlobalActivity(activity) && (
                               <div className="row-actions">
@@ -1351,7 +1374,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
                         {pendingSuggestions.length === 0 ? <p className="admin-empty">Nenhuma sugestão pendente.</p> : pendingSuggestions.map((suggestion) => (
                           <article key={suggestion.id} className="admin-row compact">
                             <div className="avatar" style={{ color: ACTIVITY_TYPE_COLORS[suggestion.type] }}><Lightbulb /></div>
-                            <div className="admin-row-main"><strong>{suggestion.title}</strong><span>{ACTIVITY_TYPE_LABELS[suggestion.type]} · {parseDateLabel(suggestion.date)}{suggestion.time ? ` · ${suggestion.time}` : ''}</span></div>
+                            <div className="admin-row-main"><strong>{suggestion.title}</strong><span>{ACTIVITY_TYPE_LABELS[suggestion.type]}{suggestion.subject ? ` · ${suggestion.subject}` : ''} · {parseDateLabel(suggestion.date)}{suggestion.time ? ` · ${suggestion.time}` : ''}</span></div>
                             <div className="admin-row-meta"><span>{suggestion.description}</span></div>
                             <div className="row-actions">
                               <button onClick={() => approveSuggestion(suggestion)} aria-label={`Aprovar ${suggestion.title}`}><Check /></button>
@@ -1459,6 +1482,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
               <div className="form-grid">
                 <label className="wide">Título<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
                 <label>Tipo<select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ActivityType })}>{ACTIVITY_TYPES.map((type) => <option value={type} key={type}>{ACTIVITY_TYPE_LABELS[type]}</option>)}</select></label>
+                <label className="wide">Matéria<select value={form.subject ?? ''} onChange={(event) => setForm({ ...form, subject: event.target.value || null })}><option value="">Sem matéria específica</option>{SUBJECTS.map((subject) => <option value={subject} key={subject}>{subject}</option>)}</select></label>
                 <label>Data<input required type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>
                 <label className="toggle wide"><input type="checkbox" checked={isGlobalForm} onChange={(event) => setIsGlobalForm(event.target.checked)} /><span /> Evento geral (aparece em todas as turmas)</label>
                 {isGlobalForm ? (

@@ -22,6 +22,7 @@ export type Activity = {
   title: string
   description: string
   type: ActivityType
+  subject: string | null // matéria, opcional (ex.: eventos gerais não têm uma só)
   date: string // formato YYYY-MM-DD
   time: string | null // formato HH:MM
   turmaId: string | null // null = evento geral, visível em todas as turmas
@@ -54,6 +55,7 @@ export type Suggestion = {
   title: string
   description: string
   type: ActivityType
+  subject: string | null
   date: string
   time: string | null
   turmaId: string

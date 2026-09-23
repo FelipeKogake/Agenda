@@ -67,5 +67,5 @@ export function normalize(value: string) {
 export function matchesSearch(activity: Activity, term: string) {
   const query = normalize(term)
   if (!query) return true
-  return [activity.title, activity.description].some((field) => normalize(field).includes(query))
+  return [activity.title, activity.description, activity.subject ?? ''].some((field) => normalize(field).includes(query))
 }

@@ -7,6 +7,7 @@ const base: Activity = {
   title: 'Prova de Matemática',
   description: 'Capítulos 3 a 5',
   type: 'trabalho',
+  subject: 'Matemática',
   date: '2026-09-25',
   time: '14:00',
   turmaId: '2º Fin A',

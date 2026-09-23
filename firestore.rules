@@ -48,6 +48,7 @@ service cloud.firestore {
       return data.title is string && data.title.size() > 0 && data.title.size() <= 120
         && data.description is string && data.description.size() <= 2000
         && data.type in ['tarefa', 'licao', 'trabalho', 'prova', 'evento']
+        && (data.subject == null || (data.subject is string && data.subject.size() > 0 && data.subject.size() <= 120))
         && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && (data.time == null || (data.time is string && data.time.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
         && (data.turmaId == null || (data.turmaId is string && data.turmaId.size() > 0));

@@ -40,6 +40,7 @@ O arquivo `.env.local` (baseado em `.env.example`) é opcional e serve só para 
   "title": "Prova de Matemática",
   "description": "Capítulos 3 a 5",
   "type": "trabalho",
+  "subject": "Matemática",
   "date": "2026-09-25",
   "time": "14:00",
   "turmaId": "2° TECH D",
@@ -48,6 +49,7 @@ O arquivo `.env.local` (baseado em `.env.example`) é opcional e serve só para 
 ```
 
 - `type`: `"tarefa"` | `"licao"` | `"trabalho"` | `"prova"` | `"evento"`
+- `subject`: matéria (string) ou `null` — opcional, lista fixa em [`src/subjects.ts`](src/subjects.ts). Usado no filtro "Todas as matérias" do calendário público.
 - `date`: data específica no formato `YYYY-MM-DD`
 - `time`: horário opcional no formato `HH:MM`, ou `null`
 - `turmaId`: string da turma, ou `null` para **evento geral** (aparece no calendário de todas as turmas). Pode ser alterado depois, editando a atividade e marcando/desmarcando "Evento geral" — assim dá pra converter entre turma específica e geral.
