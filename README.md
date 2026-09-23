@@ -47,7 +47,7 @@ O arquivo `.env.local` (baseado em `.env.example`) é opcional e serve só para 
 }
 ```
 
-- `type`: `"tarefa"` | `"licao"` | `"trabalho"` | `"evento"`
+- `type`: `"tarefa"` | `"licao"` | `"trabalho"` | `"prova"` | `"evento"`
 - `date`: data específica no formato `YYYY-MM-DD`
 - `time`: horário opcional no formato `HH:MM`, ou `null`
 - `turmaId`: string da turma, ou `null` para **evento geral** (aparece no calendário de todas as turmas). Pode ser alterado depois, editando a atividade e marcando/desmarcando "Evento geral" — assim dá pra converter entre turma específica e geral.

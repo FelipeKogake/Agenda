@@ -197,7 +197,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .admin-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
 .admin-main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 22px 24px; }
 .admin-panel { flex: 1; min-height: 0; }
-.admin-sidebar { flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; border-top: 1px solid var(--line); }
+.admin-sidebar { flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; order: -1; border-bottom: 1px solid var(--line); }
 .sidebar-block { display: grid; gap: 6px; font-size: 11px; color: var(--ink-soft); }
 .sidebar-block strong { color: var(--ink); font-size: 12px; }
 .sidebar-block .secondary-button { justify-self: start; margin-top: 4px; }
@@ -210,13 +210,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .announcement-body { padding: 24px 30px 30px; }
 .announcement-body p { white-space: pre-wrap; color: var(--text); font-size: 14px; line-height: 1.6; margin: 0 0 22px; }
 
-.managed-turma select { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--text); font-size: 12px; }
+.managed-turma select { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--text); font-size: 12px; }
 
 @media (min-width: 860px) {
   .admin-body { flex-direction: row; overflow: hidden; }
   .admin-main { overflow: hidden; border-right: 1px solid var(--line); }
   .admin-panel { overflow-y: auto; }
-  .admin-sidebar { width: 280px; overflow-y: auto; border-top: 0; }
+  .admin-sidebar { width: 280px; overflow-y: auto; order: 0; border-bottom: 0; }
 }
 
 .admin-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
