@@ -757,7 +757,7 @@ function SuggestDialog({ turmaId, onClose }: { turmaId: string; onClose: () => v
     setBusy(true)
     setError('')
     try {
-      const payload: SuggestionInput = { ...form, time: hasTime ? form.time : null, turmaId }
+      const payload: SuggestionInput = { ...form, subject: form.subject ?? null, time: hasTime ? form.time : null, turmaId }
       const reference = await addDoc(collection(db, 'suggestions'), { ...payload, status: 'pendente', createdAt: serverTimestamp() })
       addMySuggestionId(reference.id)
       setSent(true)
@@ -1156,7 +1156,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
 
   function startEdit(activity: Activity) {
     setEditing(activity)
-    setForm({ title: activity.title, description: activity.description, type: activity.type, subject: activity.subject, date: activity.date, time: activity.time })
+    setForm({ title: activity.title, description: activity.description, type: activity.type, subject: activity.subject ?? null, date: activity.date, time: activity.time })
     setIsGlobalForm(activity.turmaId === null)
     setHasTime(Boolean(activity.time))
     setSaveError('')
@@ -1168,7 +1168,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
     setBusy(true)
     setSaveError('')
     try {
-      const payload = { ...form, time: hasTime ? form.time : null, turmaId: isGlobalForm ? null : managedTurma }
+      const payload = { ...form, subject: form.subject ?? null, time: hasTime ? form.time : null, turmaId: isGlobalForm ? null : managedTurma }
       if (editing) {
         await updateDoc(doc(db, 'activities', editing.id), { ...payload, updatedAt: serverTimestamp() })
         setNotice('Atividade atualizada.')
@@ -1208,7 +1208,7 @@ function AdminDialog({ publicTurmaId, onClose }: AdminDialogProps) {
         title: suggestion.title,
         description: suggestion.description,
         type: suggestion.type,
-        subject: suggestion.subject,
+        subject: suggestion.subject ?? null,
         date: suggestion.date,
         time: suggestion.time,
         turmaId: suggestion.turmaId,
