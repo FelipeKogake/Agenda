@@ -122,6 +122,18 @@ Documento único (ID fixo `latest`) com o aviso atual mostrado para todo mundo �
 1. Em **Settings > Pages**, selecione **GitHub Actions** como fonte de publicação.
 2. Envie as alterações para a branch `main`. O workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) faz a publicação automaticamente.
 
+## Mudança de endereço
+
+O site está migrando de `felipekogake.github.io/Agenda` para `tech-2d.github.io/Agenda`. Enquanto o endereço antigo estiver no ar, [`src/migration.ts`](src/migration.ts) faz aparecer um aviso que **bloqueia o uso** e leva para o novo link. O aviso só aparece quando o hostname é o antigo — o mesmo código publicado no endereço novo (ou em `localhost`) não mostra nada.
+
+Ao migrar:
+
+1. Publique este aviso no endereço antigo **antes** de transferir/desligar o repositório antigo: o GitHub Pages do endereço antigo deixa de existir quando o repositório é transferido para outra conta/organização, e aí ninguém vê o aviso.
+2. No Console do Firebase, em **Authentication > Settings > Authorized domains**, adicione `tech-2d.github.io` — sem isso o login de representante falha no endereço novo (`auth/unauthorized-domain`).
+3. Depois que o endereço antigo sair do ar, dá pra apagar `src/migration.ts`, `src/migration.test.ts` e o componente `MovedNotice` do `App.tsx`.
+
+Preferências salvas no `localStorage` (turma, tema, acessibilidade, "Minhas sugestões", avisos já vistos) são por endereço e **não passam** para o endereço novo.
+
 ## Comandos
 
 ```bash

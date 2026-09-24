@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
   Bell,
@@ -43,6 +43,7 @@ import {
 import { auth, db } from './firebase'
 import { CLASS_NAMES } from './classNames'
 import { SUBJECTS } from './subjects'
+import { NEW_SITE_URL, shouldShowMoveNotice } from './migration'
 import {
   MONTH_LABELS,
   WEEKDAY_LABELS,
@@ -460,6 +461,28 @@ function App() {
       {adminOpen && <AdminDialog publicTurmaId={turmaId} onClose={closeAdmin} />}
 
       <VLibrasWidget />
+
+      {shouldShowMoveNotice(window.location.hostname) && <MovedNotice />}
+    </div>
+  )
+}
+
+function MovedNotice() {
+  const linkRef = useRef<HTMLAnchorElement>(null)
+
+  useEffect(() => {
+    linkRef.current?.focus()
+  }, [])
+
+  return (
+    <div className="modal-backdrop blocking" role="presentation">
+      <section className="turma-picker" role="alertdialog" aria-modal="true" aria-labelledby="moved-title" aria-describedby="moved-text">
+        <div className="login-symbol"><ExternalLink /></div>
+        <h3 id="moved-title">A Agenda mudou de endereço</h3>
+        <p id="moved-text">Estamos unificando tudo em um endereço só. Use o novo link e atualize seus favoritos. Na primeira visita por lá, você vai precisar escolher a turma de novo.</p>
+        <p className="moved-url">{NEW_SITE_URL}</p>
+        <a ref={linkRef} className="primary-button" href={NEW_SITE_URL}>Ir para o novo endereço <ArrowRight /></a>
+      </section>
     </div>
   )
 }

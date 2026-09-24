@@ -139,6 +139,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 .modal-backdrop, .drawer-backdrop { position: fixed; inset: 0; z-index: 20; padding: 20px; background: rgba(9, 20, 48, .55); backdrop-filter: blur(6px); }
 .modal-backdrop { display: grid; place-items: center; }
+.modal-backdrop.blocking { z-index: 40; }
+.turma-picker > p.moved-url { margin: 0 0 6px; color: var(--accent); font-family: 'DM Mono', monospace; font-size: 12px; word-break: break-all; }
+a.primary-button { text-decoration: none; }
 .drawer-backdrop { display: flex; justify-content: flex-end; padding: 0; }
 .dialog-header { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; padding: 26px 30px; background: var(--paper); border-bottom: 1px solid var(--line); }
 .dialog-header h2 { margin: 0; color: var(--ink); font-size: 22px; letter-spacing: -.02em; }
