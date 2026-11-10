@@ -59,6 +59,14 @@ Versões das actions conferidas no GitHub (tags mais recentes em 10/11/2026), em
    → **Causa:** proteção do Vite contra hostnames desconhecidos (DNS rebinding).
    → **Correção (IA):** em vez de mexer na configuração do projeto só para o teste, o `dist/` foi servido com `python3 -m http.server`. O print funcionou.
 
+3. **Push recusado pelo GitHub (403).** Ao enviar o commit para a branch `claude/happy-johnson-8wojly`:
+   ```
+   remote: Claude doesn't have GitHub access to FelipeKogake/Agenda for your organization. An org admin can install the Claude GitHub App ...
+   fatal: unable to access 'https://github.com/FelipeKogake/Agenda/': The requested URL returned error: 403
+   ```
+   → **Causa:** a IA consegue *ler* o repositório (inclusive o histórico do Actions), mas o GitHub App do Claude não tem permissão de *escrita* nele.
+   → A IA tentou de novo uma vez e reanexou o repositório pedindo acesso de push; o erro continuou. A correção depende do aluno (instalar/reconectar o GitHub App). **[PREENCHER: o que foi feito para resolver]**
+
 ---
 
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
