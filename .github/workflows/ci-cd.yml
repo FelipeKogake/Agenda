@@ -1,0 +1,128 @@
+# Pipeline de CI/CD da Agenda da turma.
+#
+#   push na main  ──►  job "ci"  ──(sucesso)──►  job "deploy" (GitHub Pages)
+#   pull_request  ──►  job "ci"  (o deploy é pulado: não é push na main)
+#
+# Se qualquer passo do job "ci" falhar, o job "deploy" não executa, porque
+# depende dele via "needs".
+name: CI/CD
+
+# ── Gatilhos ────────────────────────────────────────────────────────────────
+# A CI roda a cada push na main e em todo pull request que tem a main como destino.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# ── Permissões padrão (mínimas) ─────────────────────────────────────────────
+# O token do GitHub Actions só consegue LER o repositório. O job de deploy
+# recebe, só para ele, as permissões extras que o GitHub Pages exige.
+permissions:
+  contents: read
+
+# ── Concorrência ────────────────────────────────────────────────────────────
+# Num pull request, um commit novo cancela a CI antiga do mesmo PR (economiza
+# minutos). Na main, nada é cancelado: todo push precisa terminar seu deploy.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ══════════════════════════════════════════════════════════════════════════
+  # CI: integração contínua. Valida o código e gera o build de produção.
+  # ══════════════════════════════════════════════════════════════════════════
+  ci:
+    name: CI (lint, testes e build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 1. Baixa o código do commit que disparou a execução.
+      - name: Checkout do projeto
+        uses: actions/checkout@v7
+
+      # 2. Instala o Node.js 22 (LTS) e guarda em cache a pasta de pacotes do
+      #    npm, usando o package-lock.json como chave do cache.
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # 3. Instala exatamente as versões do package-lock.json. O npm ci falha
+      #    se o lock estiver desatualizado, o que é desejável numa CI.
+      - name: Instalar dependências
+        run: npm ci
+
+      # 4. Análise estática (ESLint): erros de código e regras de hooks do React.
+      - name: Lint
+        run: npm run lint
+
+      # 5. Testes unitários (Vitest). Se algum teste falhar, o job falha aqui
+      #    e o deploy não acontece.
+      - name: Testes
+        run: npm test
+
+      # 6. Build de produção. O script "build" roda antes a checagem de tipos
+      #    do TypeScript (tsc) e depois gera os arquivos estáticos em dist/.
+      #    Os secrets VITE_FIREBASE_* são opcionais: se não existirem, o app
+      #    usa a configuração pública padrão de src/firebase.ts.
+      - name: Build (typecheck + Vite)
+        run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+
+      # 7. Empacota a pasta dist/ como o artefato que o GitHub Pages publica.
+      #    Só é necessário quando vai haver deploy (push na main); em pull
+      #    request o passo é pulado.
+      - name: Empacotar site para o GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # CD: entrega contínua. Publica no GitHub Pages o build validado pela CI.
+  # ══════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: CD (deploy no GitHub Pages)
+    # Só começa depois que o job "ci" terminar COM SUCESSO. Se a CI falhar,
+    # este job fica como "skipped" e nada é publicado.
+    needs: ci
+    # E só roda em push na main: em pull request ele também é pulado.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Permissões extras, só para este job:
+    #  - pages: write    → criar um deployment no GitHub Pages
+    #  - id-token: write → gerar o token OIDC que prova ao Pages que a
+    #                      publicação vem deste workflow (sem senha/secret)
+    permissions:
+      pages: write
+      id-token: write
+
+    # Ambiente "github-pages": registra o deploy na aba Environments e mostra
+    # a URL publicada no resumo da execução.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Nunca dois deploys no Pages ao mesmo tempo. Um deploy já iniciado não é
+    # cancelado no meio; o seguinte espera na fila.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    steps:
+      # Publica o artefato gerado pelo job "ci". Não precisa de checkout nem de
+      # build de novo: vai para o ar exatamente o que foi testado.
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -44,6 +44,7 @@ import { auth, db } from './firebase'
 import { CLASS_NAMES } from './classNames'
 import { SUBJECTS } from './subjects'
 import { NEW_SITE_URL, shouldShowMoveNotice } from './migration'
+import { APP_VERSION, BUILD_DATE, formatVersion } from './version'
 import {
   MONTH_LABELS,
   WEEKDAY_LABELS,
@@ -482,6 +483,7 @@ function MovedNotice() {
         <p id="moved-text">Estamos unificando tudo em um endereço só. Use o novo link e atualize seus favoritos. Na primeira visita por lá, você vai precisar escolher a turma de novo.</p>
         <p className="moved-url">{NEW_SITE_URL}</p>
         <a ref={linkRef} className="primary-button" href={NEW_SITE_URL}>Ir para o novo endereço <ArrowRight /></a>
+        <p className="app-version">{formatVersion(APP_VERSION, BUILD_DATE)}</p>
       </section>
     </div>
   )
