@@ -99,4 +99,27 @@ Em seguida, a IA abriu um pull request da branch para a `main`, para testar o ga
 
 ---
 
+## Validação 1 — CI no pull request (sem deploy)
+
+Execução acompanhada pela IA via API do GitHub: [CI/CD #1 — evento `pull_request`](https://github.com/FelipeKogake/Agenda/actions/runs/42729144127), PR [FelipeKogake/Agenda#1](https://github.com/FelipeKogake/Agenda/pull/1), commit `85463ba`.
+
+| Job / passo | Resultado |
+|---|---|
+| CI → Checkout, Configurar Node.js, Instalar dependências, Lint, Testes, Build | success |
+| CI → Empacotar site para o GitHub Pages | **skipped** (o `if:` só libera em push na main) |
+| CD (deploy no GitHub Pages) | **skipped** (o `if:` do job bloqueou: evento é `pull_request`) |
+
+Trecho do log do build na CI:
+```
+> npm run typecheck && node node_modules/vite/bin/vite.js build --configLoader runner
+vite v7.3.6 building client environment for production...
+✓ 1700 modules transformed.
+✓ built in 3.65s
+```
+Observação: o aviso `Some chunks are larger than 500 kB` aparece no build, mas é só um alerta de desempenho e não falha a CI. Ficou fora do escopo da atividade.
+
+**Problemas:** nenhum. A primeira execução real do workflow passou, o que também valida a sintaxe do YAML (que não pôde ser checada com actionlint localmente).
+
+---
+
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
