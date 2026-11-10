@@ -149,4 +149,39 @@ Evaluated environment url: https://felipekogake.github.io/Agenda/
 
 ---
 
+## Validação 3 — Teste negativo: CI falha → CD não executa
+
+**Prompt:** "Pronto, quebrei o teste na main, pode acompanhar"
+
+**Alteração manual (aluno):** editou `src/version.test.ts` direto na `main` pelo GitHub, trocando o valor esperado por `'Versão QUEBRADA'`. Commit `eb1f406`, "Teste negativo: quebra teste de propósito".
+
+Execução acompanhada pela IA: [CI/CD #4 — evento `push` na `main`](https://github.com/FelipeKogake/Agenda/actions/runs/42730398255). Conclusão: **failure**.
+
+| Job / passo | Resultado |
+|---|---|
+| CI → Checkout, Node, Instalar dependências, Lint | success |
+| CI → **Testes** | **failure** |
+| CI → Build, Empacotar site | skipped (passos depois de uma falha não rodam) |
+| **CD (deploy no GitHub Pages)** | **skipped**: `needs: ci` impediu o deploy |
+
+Trecho do log da falha:
+```
+ ❯ src/version.test.ts (2 tests | 1 failed)
+   × versão publicada > mostra o hash do commit e a data do build no formato brasileiro
+     → expected 'Versão 0db2b2b · build 10/11/2026' to be 'Versão QUEBRADA' // Object.is equality
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 7 passed (8)
+AssertionError: expected 'Versão 0db2b2b · build 10/11/2026' to be 'Versão QUEBRADA'
+ ❯ src/version.test.ts:6:66
+##[error]Process completed with exit code 1.
+```
+
+**Explicação (IA):** o Vitest terminou com código de saída 1, o GitHub Actions marcou o passo e o job `ci` como falhos, e o job `deploy`, que tem `needs: ci`, foi pulado. O site continua com a versão anterior (`63186df`). **[PREENCHER: print do site ainda mostrando "Versão 63186df"]**
+
+Observação: desta vez "Instalar dependências" levou ~9 s (contra ~53 s na execução anterior), porque usou o cache do npm criado na `main` pela execução #3.
+
+**Pendente:** o aluno desfaz a edição com outro commit na `main`, e a IA confirma que CI e CD voltam a ficar verdes.
+
+---
+
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
