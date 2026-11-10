@@ -88,7 +88,7 @@ failed to create branch: POST https://api.github.com/repos/FelipeKogake/Agenda/g
 
 **Prompt:** "Instalei o app no repositório, tenta o push de novo e acho que consegui vincular as contas do claude e github"
 
-**Alteração manual (aluno):** instalou o Claude GitHub App no repositório `FelipeKogake/Agenda` e vinculou as contas Claude ↔ GitHub. **[PREENCHER: print da tela de instalação do app, se tiver]**
+**Alteração manual (aluno):** instalou o Claude GitHub App no repositório `FelipeKogake/Agenda` e vinculou as contas Claude ↔ GitHub. (O aluno não enviou print da instalação do app.)
 
 **Resultado:** o push funcionou:
 ```
@@ -143,7 +143,7 @@ Evaluated environment url: https://felipekogake.github.io/Agenda/
 ```
 
 **Problemas/observações:**
-1. A IA tentou abrir o site publicado para conferir o hash no JavaScript, mas o ambiente da IA bloqueia esse host: `CONNECT tunnel failed, response 403 ... felipekogake.github.io:443 — connect_rejected`. A conferência visual da versão no site ficou com o aluno. **[PREENCHER: print do site mostrando "Versão 63186df"]**
+1. A IA tentou abrir o site publicado para conferir o hash no JavaScript, mas o ambiente da IA bloqueia esse host: `CONNECT tunnel failed, response 403 ... felipekogake.github.io:443 — connect_rejected`. A conferência visual da versão no site ficou com o aluno. Confirmado pelo aluno com print (Evidências 10 e 11 do relatório).
 2. O log do deploy mostra `DeprecationWarning: The punycode module is deprecated`. Vem de dentro da action `deploy-pages` e não afeta o resultado.
 3. Na `main`, "Instalar dependências" levou ~53 s, sem aproveitar o cache criado no PR. Isso é esperado: o cache do GitHub Actions criado num PR não pode ser lido pela `main`. As próximas execuções na `main` usam o cache criado nesta.
 
@@ -176,7 +176,7 @@ AssertionError: expected 'Versão 0db2b2b · build 10/11/2026' to be 'Versão QU
 ##[error]Process completed with exit code 1.
 ```
 
-**Explicação (IA):** o Vitest terminou com código de saída 1, o GitHub Actions marcou o passo e o job `ci` como falhos, e o job `deploy`, que tem `needs: ci`, foi pulado. O site continua com a versão anterior (`63186df`). **[PREENCHER: print do site ainda mostrando "Versão 63186df"]**
+**Explicação (IA):** o Vitest terminou com código de saída 1, o GitHub Actions marcou o passo e o job `ci` como falhos, e o job `deploy`, que tem `needs: ci`, foi pulado. O site continua com a versão anterior (`63186df`). Confirmado pelo aluno com print (Evidência 15 do relatório).
 
 Observação: o tempo de "Instalar dependências" variou entre as execuções na `main` (~53 s na #3, ~9 s na #4 e ~34 s na #5). A primeira não tinha cache. Nas outras, a variação parece vir da rede do runner, sem efeito no resultado.
 
@@ -195,7 +195,7 @@ Execução acompanhada pela IA: [CI/CD #5 — evento `push` na `main`](https://g
 | CI (lint, testes e build) | 00:47:47 → 00:48:40 | success (todos os passos, inclusive Testes) |
 | CD (deploy no GitHub Pages) | 00:48:46 → 00:48:55 | success, publicado depois da CI |
 
-**Verificação da IA:** `git diff 63186df origin/main` sem diferenças, ou seja, a `main` voltou a ter exatamente o conteúdo do merge original. O site deve mostrar agora **"Versão af2c8d7"**. **[PREENCHER: print do site com "Versão af2c8d7"]**
+**Verificação da IA:** `git diff 63186df origin/main` sem diferenças, ou seja, a `main` voltou a ter exatamente o conteúdo do merge original. O site deve mostrar agora **"Versão af2c8d7"**. Confirmado pelo aluno com print (Evidência 19 do relatório).
 
 ---
 
@@ -214,9 +214,7 @@ Em seguida, enviou 20 prints em 4 mensagens. Na última, escreveu: "a confirmaç
 - `npm warn deprecated eslint@9.39.5: This version is no longer supported`: atualizar o ESLint fica como melhoria futura.
 - `The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026`: a pipeline usa só Node.js e npm, então não deve ser afetada. Se algum dia for, é possível fixar `runs-on: ubuntu-24.04`.
 
-**Pendente com o aluno:**
-- print do site mostrando "Versão af2c8d7" (o aluno confirmou no chat que viu, mas o print não foi enviado);
-- turma, para a capa.
+**Prompt seguinte:** o aluno enviou o print do site com "Versão af2c8d7" ao lado do repositório (último commit `af2c8d7` ✓) e a turma: "Segundo ano TECH Turma D, 2D TECH, TECH 2D, algo assim". A IA preencheu a capa com "2º ano TECH — Turma D (2° TECH D)", incluiu o print como Evidência 19 e gerou a versão final do PDF (10 prompts no total). Não há mais pendências.
 
 ---
 
