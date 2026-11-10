@@ -65,7 +65,7 @@ Versões das actions conferidas no GitHub (tags mais recentes em 10/11/2026), em
    fatal: unable to access 'https://github.com/FelipeKogake/Agenda/': The requested URL returned error: 403
    ```
    → **Causa:** a IA consegue *ler* o repositório (inclusive o histórico do Actions), mas o GitHub App do Claude não tem permissão de *escrita* nele.
-   → A IA tentou de novo uma vez e reanexou o repositório pedindo acesso de push; o erro continuou. A correção depende do aluno (instalar/reconectar o GitHub App). **[PREENCHER: o que foi feito para resolver]**
+   → A IA tentou de novo uma vez e reanexou o repositório pedindo acesso de push; o erro continuou. A correção dependia do aluno — ver Interações 3 e 4.
 
 ---
 
@@ -81,6 +81,21 @@ failed to create branch: POST https://api.github.com/repos/FelipeKogake/Agenda/g
 **Diagnóstico (IA):** reconectar a conta não bastou. A mensagem "Resource not accessible by integration" indica que o **Claude GitHub App não está instalado no repositório**, ou está instalado sem permissão de escrita em *Contents*. A leitura funciona porque o repositório é público.
 
 **Alteração realizada:** nenhuma no GitHub. Para não perder o trabalho, a IA gerou um arquivo `.patch` com os commits locais, que pode ser aplicado manualmente.
+
+---
+
+## Interação 4 — Push liberado após instalar o GitHub App (alteração manual)
+
+**Prompt:** "Instalei o app no repositório, tenta o push de novo e acho que consegui vincular as contas do claude e github"
+
+**Alteração manual (aluno):** instalou o Claude GitHub App no repositório `FelipeKogake/Agenda` e vinculou as contas Claude ↔ GitHub. **[PREENCHER: print da tela de instalação do app, se tiver]**
+
+**Resultado:** o push funcionou:
+```
+To https://github.com/FelipeKogake/Agenda
+ * [new branch]      claude/happy-johnson-8wojly -> claude/happy-johnson-8wojly
+```
+Em seguida, a IA abriu um pull request da branch para a `main`, para testar o gatilho `pull_request` (só a CI deve rodar, sem deploy).
 
 ---
 
