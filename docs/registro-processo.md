@@ -178,9 +178,24 @@ AssertionError: expected 'Versão 0db2b2b · build 10/11/2026' to be 'Versão QU
 
 **Explicação (IA):** o Vitest terminou com código de saída 1, o GitHub Actions marcou o passo e o job `ci` como falhos, e o job `deploy`, que tem `needs: ci`, foi pulado. O site continua com a versão anterior (`63186df`). **[PREENCHER: print do site ainda mostrando "Versão 63186df"]**
 
-Observação: desta vez "Instalar dependências" levou ~9 s (contra ~53 s na execução anterior), porque usou o cache do npm criado na `main` pela execução #3.
+Observação: o tempo de "Instalar dependências" variou entre as execuções na `main` (~53 s na #3, ~9 s na #4 e ~34 s na #5). A primeira não tinha cache. Nas outras, a variação parece vir da rede do runner, sem efeito no resultado.
 
-**Pendente:** o aluno desfaz a edição com outro commit na `main`, e a IA confirma que CI e CD voltam a ficar verdes.
+---
+
+## Validação 4 — Correção do teste: CI e CD voltam a ficar verdes
+
+**Prompt:** "Pronto, corrigi o teste na main, pode acompanhar"
+
+**Alteração manual (aluno):** voltou `src/version.test.ts` ao valor original pelo GitHub. Commit `af2c8d7`, "Corrige teste negativo".
+
+Execução acompanhada pela IA: [CI/CD #5 — evento `push` na `main`](https://github.com/FelipeKogake/Agenda/actions/runs/42731012744). Conclusão: **success**.
+
+| Job | Início → fim (UTC) | Resultado |
+|---|---|---|
+| CI (lint, testes e build) | 00:47:47 → 00:48:40 | success (todos os passos, inclusive Testes) |
+| CD (deploy no GitHub Pages) | 00:48:46 → 00:48:55 | success, publicado depois da CI |
+
+**Verificação da IA:** `git diff 63186df origin/main` sem diferenças, ou seja, a `main` voltou a ter exatamente o conteúdo do merge original. O site deve mostrar agora **"Versão af2c8d7"**. **[PREENCHER: print do site com "Versão af2c8d7"]**
 
 ---
 
