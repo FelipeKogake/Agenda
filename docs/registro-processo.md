@@ -69,4 +69,19 @@ Versões das actions conferidas no GitHub (tags mais recentes em 10/11/2026), em
 
 ---
 
+## Interação 3 — Tentativa de push após reconectar o GitHub
+
+**Prompt:** "Pronto, reconectei o GitHub, pode fazer o push"
+
+**Resultado:** o push continuou recusado com a mesma mensagem 403. A IA então tentou criar a branch pela API do GitHub (ferramenta MCP), e a API respondeu:
+```
+failed to create branch: POST https://api.github.com/repos/FelipeKogake/Agenda/git/refs: 403 Resource not accessible by integration
+```
+
+**Diagnóstico (IA):** reconectar a conta não bastou. A mensagem "Resource not accessible by integration" indica que o **Claude GitHub App não está instalado no repositório**, ou está instalado sem permissão de escrita em *Contents*. A leitura funciona porque o repositório é público.
+
+**Alteração realizada:** nenhuma no GitHub. Para não perder o trabalho, a IA gerou um arquivo `.patch` com os commits locais, que pode ser aplicado manualmente.
+
+---
+
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
