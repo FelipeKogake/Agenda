@@ -199,4 +199,25 @@ Execução acompanhada pela IA: [CI/CD #5 — evento `push` na `main`](https://g
 
 ---
 
+## Interações finais — Fases 4, 5 e 6
+
+**Prompt:** respostas do aluno às perguntas da Fase 5:
+- não fez outras alterações manuais além das registradas;
+- abriu o site e confirmou a versão `af2c8d7`;
+- não usou outra IA ou outro chat.
+
+Em seguida, enviou 20 prints em 4 mensagens. Na última, escreveu: "a confirmação de que o site continuou mesmo após a falha do CI está aqui".
+
+**Resultado (IA):** classificou os prints por etapa e gerou o relatório final em PDF.
+
+**Observações tiradas dos prints** (avisos, nenhum quebra a pipeline):
+- `npm warn deprecated eslint@9.39.5: This version is no longer supported`: atualizar o ESLint fica como melhoria futura.
+- `The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026`: a pipeline usa só Node.js e npm, então não deve ser afetada. Se algum dia for, é possível fixar `runs-on: ubuntu-24.04`.
+
+**Pendente com o aluno:**
+- print do site mostrando "Versão af2c8d7" (o aluno confirmou no chat que viu, mas o print não foi enviado);
+- turma, para a capa.
+
+---
+
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
