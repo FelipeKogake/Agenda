@@ -117,10 +117,16 @@ Documento único (ID fixo `latest`) com o aviso atual mostrado para todo mundo �
 }
 ```
 
-## Publicar no GitHub Pages
+## CI/CD (GitHub Actions + GitHub Pages)
 
-1. Em **Settings > Pages**, selecione **GitHub Actions** como fonte de publicação.
-2. Envie as alterações para a branch `main`. O workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) faz a publicação automaticamente.
+O workflow [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) tem dois jobs:
+
+- **`ci`** — roda em todo `push` na `main` e em todo `pull_request` para a `main`: instala as dependências (`npm ci`), roda lint, testes e o build (que inclui a checagem de tipos).
+- **`deploy`** — só em `push` na `main` e só se o job `ci` passar (`needs: ci`): publica o `dist/` gerado pela CI no GitHub Pages.
+
+Para funcionar, em **Settings > Pages** a fonte de publicação precisa ser **GitHub Actions**. Os secrets `VITE_FIREBASE_*` são opcionais (sem eles vale a configuração pública de `src/firebase.ts`).
+
+A versão publicada (hash curto do commit + data do build) aparece no site — hoje, no rodapé do aviso de mudança de endereço — para dar pra conferir que o último deploy entrou no ar. Localmente ela aparece como `dev`.
 
 ## Mudança de endereço
 
