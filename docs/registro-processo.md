@@ -218,4 +218,22 @@ Em seguida, enviou 20 prints em 4 mensagens. Na última, escreveu: "a confirmaç
 
 ---
 
+## Interações 11 a 13 — Revisão final e verificação de entrega
+
+- **Prompt 11:** "beleza, então aqueles campos [preencher], nem precisa mais correto?? Eram apenas exemplo né??". A IA explicou que as menções restantes são citações (do prompt 1 e da descrição do prompt 10), não campos em aberto.
+- **Prompt 12:** "não, sem problemas, uma última confirmação, a ordem dos prints está cronológico né??". A IA verificou que as seções estavam em ordem, mas não alguns prints dentro de 7.1 e 7.2.
+- **Prompt 13:** "sim, pode reordenar na ordem que faz sentido e depois já me faz a bateria para ver se os requisitos da atividade foram atendidas e se está 100% pronto para entrega".
+  - **Problema encontrado (IA):** a legenda do print do PR dizia "pronto para merge após a CI", mas no print o commit `48bb74e` ainda estava sem ✓, ou seja, a CI #2 ainda rodava. Legenda corrigida.
+  - **Alteração (IA):** evidências reordenadas em ordem cronológica (ordem de captura).
+  - **Bateria de verificação (IA), toda ✅:**
+    - **Pipeline na `main`:** os 8 requisitos atendidos, permissões mínimas e um único workflow.
+    - **Execuções no GitHub (API):** #1 e #2 (PR) com CI ✅ e CD skipped; #3 (push) com CI ✅ e CD ✅, iniciado após a CI; #4 (push) com CI ❌ e CD skipped; #5 (push) com CI ✅ e CD ✅. O último deploy no Pages é o `af2c8d7`, igual à `main`.
+    - **Checkout limpo da `main`:** lint ✅, 8/8 testes ✅ e build ✅, com a versão no bundle.
+    - **PDF:** capa, link, justificativa, YAML idêntico ao da `main`, 13 prompts com os 4 campos, alterações IA × manual, análise de a) a e), 19 evidências em ordem (com as 5 obrigatórias), links clicáveis, fonte monoespaçada e fontes embutidas.
+    - **Dois falsos alarmes do próprio script de verificação, analisados e descartados:**
+      - a contagem de menções a "[PREENCHER]" deu 5, e não 4, porque o resultado do prompt 11 também cita a palavra;
+      - a contagem bruta de imagens deu 23, mas o `pdfimages -list` confirma 19, uma por evidência.
+
+---
+
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
