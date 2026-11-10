@@ -122,4 +122,31 @@ Observação: o aviso `Some chunks are larger than 500 kB` aparece no build, mas
 
 ---
 
+## Validação 2 — Push na main: CI → CD → aplicação publicada
+
+**Ação manual (aluno):** merge do PR [FelipeKogake/Agenda#1](https://github.com/FelipeKogake/Agenda/pull/1) na `main` (commit de merge `63186df`).
+
+Execução acompanhada pela IA: [CI/CD #3 — evento `push` na `main`](https://github.com/FelipeKogake/Agenda/actions/runs/42729602298).
+
+| Job | Início → fim (UTC) | Resultado |
+|---|---|---|
+| CI (lint, testes e build) | 00:36:38 → 00:37:52 | success (desta vez o passo "Empacotar site" **rodou**) |
+| CD (deploy no GitHub Pages) | 00:37:58 → 00:38:08 | success. Só começou **depois** do fim da CI (`needs: ci`) |
+
+Trecho do log do deploy:
+```
+Creating Pages deployment with payload:
+	"pages_build_version": "63186df36923e5cb1435698df233c20655f03857",
+Created deployment for 63186df36923e5cb1435698df233c20655f03857
+Reported success!
+Evaluated environment url: https://felipekogake.github.io/Agenda/
+```
+
+**Problemas/observações:**
+1. A IA tentou abrir o site publicado para conferir o hash no JavaScript, mas o ambiente da IA bloqueia esse host: `CONNECT tunnel failed, response 403 ... felipekogake.github.io:443 — connect_rejected`. A conferência visual da versão no site ficou com o aluno. **[PREENCHER: print do site mostrando "Versão 63186df"]**
+2. O log do deploy mostra `DeprecationWarning: The punycode module is deprecated`. Vem de dentro da action `deploy-pages` e não afeta o resultado.
+3. Na `main`, "Instalar dependências" levou ~53 s, sem aproveitar o cache criado no PR. Isso é esperado: o cache do GitHub Actions criado num PR não pode ser lido pela `main`. As próximas execuções na `main` usam o cache criado nesta.
+
+---
+
 <!-- As próximas interações (execuções no GitHub Actions, PR, merge, teste negativo) são acrescentadas abaixo conforme acontecem. -->
